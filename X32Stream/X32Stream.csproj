@@ -3,7 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.1</TargetFramework>
-    <RootNamespace>X32_Stream</RootNamespace>
+    <RootNamespace>Suhock.X32Stream</RootNamespace>
+    <AssemblyName>X32Stream</AssemblyName>
   </PropertyGroup>
 
 </Project>
