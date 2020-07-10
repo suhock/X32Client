@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Suhock.X32Stream
 {
     public class X32Client
     {
-        private readonly int port;
-        private readonly string address;
+        public int Port { get; }
+        public string Address { get; }
 
         private UdpClient Client;
         private IPEndPoint EndPoint;
@@ -17,8 +18,8 @@ namespace Suhock.X32Stream
 
         public X32Client(string address, int port)
         {
-            this.address = address;
-            this.port = port;
+            Address = address;
+            Port = port;
         }
 
         private void Reset()
@@ -26,39 +27,43 @@ namespace Suhock.X32Stream
             if (Client == null)
             {
                 Client = new UdpClient();
-            }
-
-            if (EndPoint == null)
-            {
-                EndPoint = new IPEndPoint(IPAddress.Parse(address), port);
+                EndPoint = new IPEndPoint(IPAddress.Parse(Address), Port);
             }
         }
 
-        public async void Subscribe(HandleMessage callback)
+        public async Task<bool> Subscribe(HandleMessage callback)
         {
-            await Task.Run(() =>
+            return await Task.Run(async () =>
             {
                 Reset();
                 XInfoMessageLoop();
 
-                while (Client != null)
+                while (true)
                 {
-                    try
+                    if (Client != null)
                     {
-                        byte[] buffer = Client.Receive(ref EndPoint);
-                        callback(X32Message.Decode(buffer));
-                    }
-                    catch (SocketException e)
-                    {
-                        Console.WriteLine(e);
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                        Client.Close();
-                        Client = null;
+                        try
+                        {
+                            byte[] buffer = Client.Receive(ref EndPoint);
+
+                            try
+                            {
+                                callback(X32Message.Decode(buffer));
+                            }
+                            catch (Exception e)
+                            {
+                                Console.WriteLine(e);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                            await Task.Delay(2000);
+                        }
                     }
                 }
+
+                return true;
             });
         }
 
@@ -81,21 +86,21 @@ namespace Suhock.X32Stream
         {
             byte[] xinfo = new X32Message("/xremote").Encode();
 
-            while (Client != null)
+            while (true)
             {
                 try
                 {
                     await Client.SendAsync(xinfo, xinfo.Length, EndPoint);
                 }
-                catch (SocketException e)
+                catch (ObjectDisposedException e)
                 {
                     Console.WriteLine(e);
+                    Client = null;
+                    Reset();
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
-                    Client.Close();
-                    Client = null;
                 }
 
                 await Task.Delay(2000);

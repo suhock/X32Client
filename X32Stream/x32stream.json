@@ -1,0 +1,16 @@
+﻿{
+	"Source": {
+		"Address": "172.20.2.1"
+	},
+	"Destination": {
+		"Address": "172.20.2.2"
+	},
+	"Patterns": [
+        "^/(ch|auxin)/../config/(name|icon|color)",
+        "^/(ch|auxin)/../preamp/(invert|hpon|hpslope|hpf)",
+        "^/auxin/../preamp/trim",
+        "^/(ch|auxin)/../(gate|dyn|eq|grp)",
+        "^/(ch|auxin)/../mix/(on|fader)",
+        "^/dca"
+	]
+}

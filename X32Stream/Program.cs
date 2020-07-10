@@ -1,56 +1,68 @@
 ﻿using System;
-using System.Text;
+using System.IO;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Suhock.X32Stream
 {
     class Program
     {
-        static void Main(string[] args)
+        const string DefaultConfigFilename = "x32stream.json";
+
+        static async Task Main(string[] args)
         {
-            X32Client clientDst = new X32Client("192.168.1.30", 10023);
-            X32Client clientSrc = new X32Client("192.168.1.30", 10023);
+            string configFilename = args.Length > 0 ? args[0] : DefaultConfigFilename;
+            X32StreamConfig config;
 
-            clientSrc.Subscribe((X32Message msg) =>
+            using (FileStream fs = File.OpenRead(configFilename))
             {
-                Console.WriteLine("Recv: " + msg);
-
-                if (msg.Address.StartsWith("/ch/"))
-                {
-                    int ch = System.Int32.Parse(msg.Address.Substring(4, 2)) + 1;
-
-                    if (ch <= 32)
-                    {
-                        string newCh = ch.ToString().PadLeft(2, '0');
-                        char[] address = msg.Address.ToCharArray();
-                        address[4] = newCh[0];
-                        address[5] = newCh[1];
-
-                        msg.Address = new string(address);
-                        Console.WriteLine("Send: " + BytesToString(msg.Encode()));
-                        clientDst.Send(msg);
-                    }
-                }
-                else if (Regex.IsMatch(msg.Address, @"^/((auxin|ch)/\d\d/(config|dyn|eq|gate|grp/dca|mix/(fader|on)|preamp/(hp|invert)))|dca"))
-                {
-                    Console.WriteLine("Send: " + BytesToString(msg.Encode()));
-                }
-            });
-
-            Console.ReadKey();
-        }
-
-        static string BytesToString(byte[] bytes)
-        {
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                if (bytes[i] == 0)
-                {
-                    bytes[i] = (byte)'~';
-                }
+                config = await JsonSerializer.DeserializeAsync<X32StreamConfig>(fs);
             }
 
-            return Encoding.ASCII.GetString(bytes);
+            X32Client clientDst = new X32Client(config.Destination.Address, config.Destination.Port);
+            X32Client clientSrc = new X32Client(config.Source.Address, config.Source.Port);
+
+            await clientSrc.Subscribe((X32Message msg) =>
+            {
+                foreach (string pattern in config.Patterns)
+                {
+                    if (Regex.IsMatch(msg.Address, pattern))
+                    {
+                        Console.ForegroundColor = ConsoleColor.DarkGray;
+                        Console.Write("Forward to ");
+                        Console.Write(clientDst.Address);
+                        Console.Write(": ");
+
+                        string[] strs = msg.ToString().Split(' ');
+
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.Write(strs[0]);
+
+                        if (strs.Length > 1)
+                        {
+                            Console.ForegroundColor = ConsoleColor.DarkGray;
+                            Console.Write(" ");
+                            Console.Write(strs[1]);
+
+                            Console.ForegroundColor = ConsoleColor.White;
+
+                            for (int i = 2; i < strs.Length; i++)
+                            {
+                                Console.Write(" ");
+                                Console.Write(strs[i]);
+                            }
+                        }
+
+                        Console.ForegroundColor = ConsoleColor.White;
+                        Console.WriteLine();
+
+                        clientDst.Send(msg);
+
+                        break;
+                    }
+                }
+            });
         }
     }
 }

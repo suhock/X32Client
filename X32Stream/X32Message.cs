@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Suhock.X32Stream
@@ -48,8 +49,6 @@ namespace Suhock.X32Stream
 
                 for (int i = 0; i < parameters.Length; i++)
                 {
-                    int firstParamIndex = index;
-
                     char typeCode = (char)message[firstParamTypeIndex + i];
                     parameters[i] = DecodeParameterFromMessage(typeCode, message, ref index);
                 }
@@ -94,14 +93,25 @@ namespace Suhock.X32Stream
 
         public override string ToString()
         {
-            string str = Address;
+            StringBuilder sb = new StringBuilder(Address);
 
-            foreach (IX32Parameter parameter in Parameters)
+            if (Parameters.Length > 0)
             {
-                str += " " + parameter.ToString();
+                sb.Append(" ,");
+
+                foreach (IX32Parameter parameter in Parameters)
+                {
+                    sb.Append(parameter.TypeChar);
+                }
+
+                foreach (IX32Parameter parameter in Parameters)
+                {
+                    sb.Append(" ");
+                    sb.Append(parameter.ToString());
+                }
             }
 
-            return str;
+            return sb.ToString();
         }
 
         public interface IX32Parameter
@@ -140,7 +150,7 @@ namespace Suhock.X32Stream
 
             public override string ToString()
             {
-                return Value;
+                return '"' + Value + '"';
             }
 
         }
@@ -172,7 +182,7 @@ namespace Suhock.X32Stream
 
             public override string ToString()
             {
-                return Value.ToString();
+                return '[' + Value.ToString() + ']';
             }
         }
 
@@ -203,66 +213,125 @@ namespace Suhock.X32Stream
 
             public override string ToString()
             {
-                return Value.ToString();
+                return '[' + Value.ToString() + ']';
+            }
+        }
+
+        public class X32BlobParameter : IX32Parameter
+        {
+            public const char TypeCode = 'b';
+
+            public byte[] Value { get; set; }
+
+            public char TypeChar { get { return TypeCode; } }
+
+            public int EncodedLength { get { return EncodedIncrement(Value.Length);  } }
+
+            public byte[] EncodedValue
+            {
+                get
+                {
+                    if (Value.Length % 4 == 0)
+                    {
+                        return Value;
+                    }
+
+                    byte[] bytes = new byte[EncodedLength];
+                    Array.Copy(Value, bytes, Value.Length);
+
+                    return bytes;
+                }
+            }
+
+            public override string ToString()
+            {
+                return '[' + BitConverter.ToString(Value).Replace("-", "") + ']';
             }
         }
 
         private static IX32Parameter DecodeParameterFromMessage(char typeCode, byte[] bytes, ref int index)
         {
-            int firstIndex = index;
-
             switch (typeCode)
             {
                 case X32StringParameter.TypeCode:
-                    for (; index < bytes.Length; index++)
-                    {
-                        if (bytes[index] == 0)
-                        {
-                            break;
-                        }
-                    }
-
-                    var count = index - firstIndex;
-                    index = EncodedIncrement(index);
-
                     return new X32StringParameter
                     {
-                        Value = Encoding.ASCII.GetString(bytes, firstIndex, count)
+                        Value = ReadString(bytes, ref index)
                     };
 
                 case X32IntParameter.TypeCode:
-                    byte[] intStr = new byte[4];
-                    Array.ConstrainedCopy(bytes, firstIndex, intStr, 0, 4);
-                    index += 4;
-
-                    if (BitConverter.IsLittleEndian)
-                    {
-                        Array.Reverse(intStr);
-                    }
-
                     return new X32IntParameter
                     {
-                        Value = BitConverter.ToInt32(intStr)
+                        Value = ReadBigEndianInt(bytes, ref index)
                     };
 
                 case X32FloatParameter.TypeCode:
-                    byte[] floatStr = new byte[4];
-                    Array.ConstrainedCopy(bytes, firstIndex, floatStr, 0, 4);
-                    index += 4;
-
-                    if (BitConverter.IsLittleEndian)
-                    {
-                        Array.Reverse(floatStr);
-                    }
-
                     return new X32FloatParameter
                     {
-                        Value = BitConverter.ToSingle(floatStr)
+                        Value = ReadBigEndianFloat(bytes, ref index)
+                    };
+
+                case X32BlobParameter.TypeCode:
+                    return new X32BlobParameter
+                    {
+                        Value = ReadBlob(bytes, ref index)
                     };
 
                 default:
-                    throw new NotSupportedException("Unknown code type");
+                    throw new NotSupportedException("Unknown type: " + typeCode);
             }
+        }
+
+        private static string ReadString(byte[] bytes, ref int index)
+        {
+            int startIndex = index;
+
+            for (; index < bytes.Length; index++)
+            {
+                if (bytes[index] == 0)
+                {
+                    break;
+                }
+            }
+
+            var count = index - startIndex;
+            index = EncodedIncrement(index);
+
+            return Encoding.ASCII.GetString(bytes, startIndex, count);
+        }
+
+        private static int ReadBigEndianInt(byte[] bytes, ref int index)
+        {
+            return BitConverter.ToInt32(ReadBigEndianBytes(4, bytes, ref index));
+        }
+
+        private static float ReadBigEndianFloat(byte[] bytes, ref int index)
+        {
+            return BitConverter.ToSingle(ReadBigEndianBytes(4, bytes, ref index));
+        }
+
+        private static byte[] ReadBigEndianBytes(int length, byte[] bytes, ref int index)
+        {
+            byte[] buf = new byte[length];
+            Array.ConstrainedCopy(bytes, index, buf, 0, length);
+            index += length;
+
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(buf);
+            }
+
+            return buf;
+        }
+
+        private static byte[] ReadBlob(byte[] bytes, ref int index)
+        {
+            int length = ReadBigEndianInt(bytes, ref index);
+            byte[] result = new byte[length];
+
+            Array.ConstrainedCopy(bytes, index, result, 0, length);
+
+            return result;
         }
 
         private static int EncodedIncrement(int value)
