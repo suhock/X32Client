@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace Suhock.X32Stream
@@ -225,21 +224,25 @@ namespace Suhock.X32Stream
 
             public char TypeChar { get { return TypeCode; } }
 
-            public int EncodedLength { get { return EncodedIncrement(Value.Length);  } }
+            public int EncodedLength { get { return EncodedIncrement(Value.Length); } }
 
             public byte[] EncodedValue
             {
                 get
                 {
-                    if (Value.Length % 4 == 0)
+                    var length = EncodedLength;
+                    byte[] blob = new byte[length + 4];
+
+                    BitConverter.TryWriteBytes(blob, length);
+
+                    if (BitConverter.IsLittleEndian)
                     {
-                        return Value;
+                        MemoryExtensions.Reverse<byte>(blob.AsSpan<byte>(0, 4));
                     }
 
-                    byte[] bytes = new byte[EncodedLength];
-                    Array.Copy(Value, bytes, Value.Length);
+                    Array.Copy(Value, 0, blob, 4, Value.Length);
 
-                    return bytes;
+                    return blob;
                 }
             }
 

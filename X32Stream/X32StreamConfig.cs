@@ -8,6 +8,8 @@
 
         public string[] Patterns { get; set; }
 
+        public string[] Init { get; set; }
+
         public class X32Profile
         {
             public const int DefaultPort = 10023;
