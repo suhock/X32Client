@@ -1,0 +1,34 @@
+﻿{
+	"Address": "192.168.1.238",
+	"Port": 10023,
+	"CredentialsFilename": "credentials.json",
+	"SpreadsheetId": "1v0DlxL7jHtpwv3g6rHp3eVplNaFb57VjTOAjEzloxfs",
+	"SpreadsheetRange": "Channels!A1:F",
+	"ConsoleName": "M32",
+	"Groups": [
+		{
+			"Name": "Vox",
+			"Type": "Bus",
+			"Id": "01"
+		},
+		{
+			"Name": "Inst",
+			"Type": "DCA",
+			"Id": "02"
+		},
+		{
+			"Name": "Drums",
+			"Type": "Bus",
+			"Id": "03"
+		},
+		{
+			"Name": "Other",
+			"Type": "DCA",
+			"Id": "4"
+		},
+		{
+			"Name": "",
+			"Type": "Off"
+		}
+	]
+}

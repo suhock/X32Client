@@ -1,0 +1,33 @@
+﻿{
+	"Source": {
+		"Address": "172.20.2.1"
+	},
+	"Destination": {
+		"Address": "172.20.2.2"
+	},
+	"Patterns": [
+        "^/(ch|auxin)/../config/(name|icon|color)",
+        "^/(ch|auxin)/../preamp/(invert|hpon|hpslope|hpf)",
+        "^/auxin/../preamp/trim",
+        "^/(ch|auxin)/../(gate|dyn|eq|grp)",
+        "^/(ch|auxin)/../mix/(on|fader)",
+        "^/dca"
+	],
+	"Init": [
+		"/ch/[01-32]/config/{name,icon,color}",
+		"/ch/[01-32]/preamp/{invert,hpon,hpslope,hpf}",
+		"/ch/[01-32]/gate/{on,mode,thr,range,attack,hold,release,keysrc,filter/on,filter/type,filter/f}",
+		"/ch/[01-32]/dyn/{on,mode,det,env,thr,ratio,knee,mgain,attack,hold,release,pos,keysrc,mix,auto,filter/on,filter/type}",
+		"/ch/[01-32]/eq/on",
+		"/ch/[01-32]/eq/[1-4]/{type,f,g,q}",
+		"/ch/[01-32]/mix/{on,fader}",
+		"/ch/[01-32]/grp/{dca,mute}",
+		"/auxin/[01-08]/config/{name,icon,color}",
+		"/auxin/[01-08]/preamp/invert",
+		"/auxin/[01-08]/eq/on",
+		"/auxin/[01-08]/eq/[1-4]/{type,f,g,q}",
+		"/auxin/[01-08]/mix/{on,fader}",
+		"/auxin/[01-08]/grp/{dca,mute}",
+		"/dca/[1-8]/{on,fader,config/name,config/icon,config/color}"
+	]
+}

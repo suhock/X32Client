@@ -4,11 +4,18 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.30225.117
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "X32Stream", "X32Stream\X32Stream.csproj", "{C01BD19E-838E-480F-AF9B-04F88D8D25B6}"
+	ProjectSection(ProjectDependencies) = postProject
+		{68D71FF6-87E6-47D4-B2E1-DA884C39977E} = {68D71FF6-87E6-47D4-B2E1-DA884C39977E}
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "X32Show", "X32Show\X32Show.csproj", "{8A4D857F-6739-4FE0-8490-3197AA252E7E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "X32Show", "X32Show\X32Show.csproj", "{8A4D857F-6739-4FE0-8490-3197AA252E7E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "X32Routing", "X32Routing\X32Routing.csproj", "{36CCE561-7924-47EF-867B-89584FAD78E5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{C01BD19E-838E-480F-AF9B-04F88D8D25B6} = {C01BD19E-838E-480F-AF9B-04F88D8D25B6}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "X32Client", "X32Client\X32Client.csproj", "{68D71FF6-87E6-47D4-B2E1-DA884C39977E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,6 +31,14 @@ Global
 		{8A4D857F-6739-4FE0-8490-3197AA252E7E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A4D857F-6739-4FE0-8490-3197AA252E7E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A4D857F-6739-4FE0-8490-3197AA252E7E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36CCE561-7924-47EF-867B-89584FAD78E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36CCE561-7924-47EF-867B-89584FAD78E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36CCE561-7924-47EF-867B-89584FAD78E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36CCE561-7924-47EF-867B-89584FAD78E5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68D71FF6-87E6-47D4-B2E1-DA884C39977E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68D71FF6-87E6-47D4-B2E1-DA884C39977E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68D71FF6-87E6-47D4-B2E1-DA884C39977E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68D71FF6-87E6-47D4-B2E1-DA884C39977E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

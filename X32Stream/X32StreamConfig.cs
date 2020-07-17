@@ -1,4 +1,4 @@
-﻿namespace Suhock.X32Stream
+﻿namespace Suhock.X32.Stream
 {
     class X32StreamConfig
     {
