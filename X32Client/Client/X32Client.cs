@@ -1,29 +1,26 @@
-﻿using Suhock.X32.Client.Message;
+﻿using Suhock.Osc;
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
-using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Suhock.X32.Client
 {
-    public class X32Client
+    public class X32Client : IDisposable
     {
         public const int DefaultPort = 10023;
 
         public int Port { get; }
         public string Address { get; }
 
-        private UdpClient Client;
-
-        private DateTime LastMessageTime = DateTime.MinValue;
+        private OscClient Client;
 
         public bool IsConnected { get; private set; } = false;
 
         public delegate void ConnectionHandler(X32Client client);
-        public delegate void MessageHandler(X32Client client, X32Message message);
+        public delegate void MessageHandler(X32Client client, OscMessage message);
 
         public X32Client(string address, int port)
         {
@@ -33,11 +30,48 @@ namespace Suhock.X32.Client
 
         public X32Client(string address) : this(address, DefaultPort) { }
 
+        ~X32Client()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private bool IsDisposed = false;
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (IsDisposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                Client.Dispose();
+                tsMessageLoop.Dispose();
+
+                foreach ((_, var queue) in ewhQueues)
+                {
+                    while (queue.TryDequeue(out var mhe))
+                    {
+                        mhe.Dispose();
+                    }
+                }
+            }
+
+            IsDisposed = true;
+        }
+
         public ConnectionHandler OnConnect { get; set; }
         public ConnectionHandler OnDisconnect { get; set; }
         public MessageHandler OnMessage { get; set; }
 
-        class MessageHandlerEvent
+        private class MessageHandlerEvent : IDisposable
         {
             public MessageHandler Handler;
             public EventWaitHandle Wait = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -46,23 +80,20 @@ namespace Suhock.X32.Client
             {
                 Handler = handler;
             }
+
+            public void Dispose()
+            {
+                Wait.Dispose();
+            }
         }
 
         private ConcurrentDictionary<string, ConcurrentQueue<MessageHandlerEvent>> ewhQueues;
 
         private void Init()
         {
-            Client = new UdpClient(Address, Port);
-            Client.Client.ReceiveTimeout = 100;
+            Client = new OscClient(Address, Port);
+            Client.Client.Client.ReceiveTimeout = 100;
             ewhQueues = new ConcurrentDictionary<string, ConcurrentQueue<MessageHandlerEvent>>();
-        }
-
-        private X32Message Receive()
-        {
-            IPEndPoint ep = new IPEndPoint(IPAddress.Any, 0); ;
-            byte[] bytes = Client.Receive(ref ep);
-
-            return new X32Message(bytes);
         }
 
         private CancellationTokenSource tsMessageLoop = new CancellationTokenSource();
@@ -93,11 +124,11 @@ namespace Suhock.X32.Client
                                 SendPingMessage(false, true);
                             }
 
-                            X32Message msg = null;
+                            OscMessage msg = null;
 
                             try
                             {
-                                msg = Receive();
+                                msg = Client.Receive();
                             }
                             catch (SocketException e)
                             {
@@ -110,7 +141,7 @@ namespace Suhock.X32.Client
                                 }
                                 else
                                 {
-                                    throw e;
+                                    throw;
                                 }
                             }
 
@@ -142,20 +173,21 @@ namespace Suhock.X32.Client
                                 OnMessage?.Invoke(this, msg);
                             }
                         }
-                    } catch (SocketException e)
+                    }
+                    catch (SocketException e)
                     {
                         SetDisconnectState();
 
                         if (e.SocketErrorCode != SocketError.Interrupted)
                         {
-                            throw e;
+                            throw;
                         }
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         SetDisconnectState();
 
-                        throw e;
+                        throw;
                     }
                 }, tsMessageLoop.Token);
             }
@@ -178,21 +210,20 @@ namespace Suhock.X32.Client
                 {
                     tsMessageLoop.Cancel();
                     Client.Close();
-                    Client = null;
                     IsConnected = false;
                     OnDisconnect?.Invoke(this);
                 }
             }
         }
 
-        readonly X32Message pingMsg = new X32Message("/xinfo");
+        private readonly OscMessage pingMsg = new OscMessage("/xinfo");
 
         private void SendPingMessage(bool waitForResponse, bool connectionRequired)
         {
-            SendMessage(pingMsg, waitForResponse ? (X32Client, X32Message) => { } : (MessageHandler)null, connectionRequired);
+            SendMessage(pingMsg, waitForResponse ? (X32Client, OscMessage) => { } : (MessageHandler)null, connectionRequired);
         }
 
-        private MessageHandlerEvent RegisterSendResponseHandler(X32Message msg, MessageHandler responseHandler)
+        private MessageHandlerEvent RegisterSendResponseHandler(OscMessage msg, MessageHandler responseHandler)
         {
             if (responseHandler != null)
             {
@@ -208,13 +239,14 @@ namespace Suhock.X32.Client
                 ewhQueues[msg.Address].Enqueue(mhe);
 
                 return mhe;
-            } else
+            }
+            else
             {
                 return null;
             }
         }
 
-        private void WaitForResponseHandler(X32Message msg, MessageHandlerEvent mhe)
+        private void WaitForResponseHandler(OscMessage msg, MessageHandlerEvent mhe)
         {
             if (mhe != null)
             {
@@ -227,7 +259,7 @@ namespace Suhock.X32.Client
             }
         }
 
-        private void SendMessage(X32Message msg, MessageHandler responseHandler, bool requireConnected)
+        private void SendMessage(OscMessage msg, MessageHandler responseHandler, bool requireConnected)
         {
             if (requireConnected && !IsConnected)
             {
@@ -235,65 +267,83 @@ namespace Suhock.X32.Client
             }
 
             MessageHandlerEvent mhe = RegisterSendResponseHandler(msg, responseHandler);
-            byte[] bytes = msg.ToBytes();
-            Client.Send(bytes, bytes.Length);
+            Client.Send(msg);
             WaitForResponseHandler(msg, mhe);
+
+            if (mhe != null)
+            {
+                mhe.Dispose();
+            }
         }
 
-        public void Send(X32Message msg)
+        public void Send(OscMessage msg)
         {
+            if (msg == null)
+            {
+                throw new ArgumentNullException(nameof(msg));
+            }
+
             SendMessage(msg, null, true);
         }
 
-        public void Send(X32Message msg, MessageHandler responseHandler)
+        public void Send(OscMessage msg, MessageHandler responseHandler)
         {
+            if (msg == null)
+            {
+                throw new ArgumentNullException(nameof(msg));
+            }
+
             SendMessage(msg, responseHandler, true);
         }
 
-        private async Task SendMessageAsync(X32Message msg, MessageHandler responseHandler, bool requireConnected)
+        private async Task SendMessageAsync(OscMessage msg, MessageHandler responseHandler, bool requireConnected)
         {
             if (requireConnected && !IsConnected)
             {
                 throw new InvalidOperationException("Not connected");
             }
 
+            if (msg == null)
+            {
+                throw new ArgumentNullException(nameof(msg));
+            }
+
             MessageHandlerEvent mhe = RegisterSendResponseHandler(msg, responseHandler);
-            byte[] bytes = msg.ToBytes();
-            await Client.SendAsync(bytes, bytes.Length);
+            await Client.SendAsync(msg).ConfigureAwait(false);
             WaitForResponseHandler(msg, mhe);
+            mhe.Dispose();
         }
 
-        public async Task SendAsync(X32Message msg)
+        public async Task SendAsync(OscMessage msg)
         {
-            await SendMessageAsync(msg, null, true);
+            await SendMessageAsync(msg, null, true).ConfigureAwait(false);
         }
 
-        public async Task SendAsync(X32Message msg, MessageHandler responseHandler)
+        public async Task SendAsync(OscMessage msg, MessageHandler responseHandler)
         {
-            await SendMessageAsync(msg, responseHandler, true);
+            await SendMessageAsync(msg, responseHandler, true).ConfigureAwait(false);
         }
 
         public async Task Subscribe()
         {
-            X32Message msg = new X32Message("/xremote");
+            OscMessage msg = new OscMessage("/xremote");
 
             while (true)
             {
                 try
                 {
-                    await SendAsync(msg);
+                    await SendAsync(msg).ConfigureAwait(false);
                 }
                 catch (ObjectDisposedException e)
                 {
                     Console.WriteLine(e);
-                    Client = null;
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e);
                 }
 
-                await Task.Delay(2000);
+                await Task.Delay(2000).ConfigureAwait(false);
             }
         }
     }

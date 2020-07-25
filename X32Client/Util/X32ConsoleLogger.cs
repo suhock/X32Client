@@ -1,11 +1,11 @@
-﻿using Suhock.X32.Client;
-using Suhock.X32.Client.Message;
+﻿using Suhock.Osc;
+using Suhock.X32.Client;
 using System;
 using System.Collections.Generic;
 
 namespace Suhock.X32.Util
 {
-    public class X32ConsoleLogger
+    public static class X32ConsoleLogger
     {
         private static readonly object Lock = new object();
 
@@ -64,53 +64,69 @@ namespace Suhock.X32.Util
             }
         }
 
-        public static void WriteSend(X32Client client, X32Message msg)
+        public static void WriteSend(X32Client client, OscMessage msg)
         {
+            if (client == null)
+            {
+                throw new ArgumentNullException(nameof(client));
+            }
+
+            if (msg == null)
+            {
+                throw new ArgumentNullException(nameof(msg));
+            }
+
             List<object> parts = new List<object>
             {
                 ConsoleColor.DarkGray,
-                "Send to ",
-                ConsoleColor.White,
+                "Send ",
+                ConsoleColor.Gray,
                 client.Address,
                 ConsoleColor.DarkGray,
                 ": "
             };
 
             WriteMessage(parts, msg, ConsoleColor.Red);
-
             WriteParts(parts.ToArray(), true);
         }
 
-        public static void WriteReceive(X32Client client, X32Message msg)
+        public static void WriteReceive(X32Client client, OscMessage msg)
         {
+            if (client == null)
+            {
+                throw new ArgumentNullException(nameof(client));
+            }
+
+            if (msg == null)
+            {
+                throw new ArgumentNullException(nameof(msg));
+            }
+
             List<object> parts = new List<object>
                 {
                     ConsoleColor.DarkGray,
-                    "Recv from ",
-                    ConsoleColor.White,
+                    "Recv ",
+                    ConsoleColor.Gray,
                     client.Address,
                     ConsoleColor.DarkGray,
                     ": "
                 };
 
-            WriteMessage(parts, msg, ConsoleColor.Green);
-
+            WriteMessage(parts, msg, ConsoleColor.White);
             WriteParts(parts.ToArray(), true);
         }
 
-        private static void WriteMessage(List<object> parts, X32Message msg, ConsoleColor addressColor)
+        private static void WriteMessage(List<object> parts, OscMessage msg, ConsoleColor addressColor)
         {
-            string[] strs = msg.ToString().Split(' ');
-
             parts.Add(addressColor);
-            parts.Add(strs[0]);
+            parts.Add(msg.Address);
+            parts.Add(ConsoleColor.DarkGray);
+            parts.Add(' ' + msg.GetTypeTagString());
+            parts.Add(ConsoleColor.White);
 
-            if (strs.Length > 1)
+            foreach (var arg in msg.Arguments)
             {
-                parts.Add(ConsoleColor.DarkGray);
-                parts.Add(' ' + strs[1]);
-                parts.Add(ConsoleColor.White);
-                parts.Add(' ' + string.Join(' ', strs, 2, strs.Length - 2));
+                parts.Add(' ' + arg.ToString());
             }
         }
     }

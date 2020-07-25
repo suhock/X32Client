@@ -24,7 +24,7 @@ namespace Suhock.X32.Type
 
     public static class X32ColorExtensions
     {
-        static readonly string[] mapping =
+        private static readonly string[] mapping =
         {
             "OFF",
             "RD",

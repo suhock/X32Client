@@ -1,6 +1,6 @@
 ﻿namespace Suhock.X32.Stream
 {
-    class X32StreamConfig
+    internal class X32StreamConfig
     {
         public X32Profile Source { get; set; } = new X32Profile();
 

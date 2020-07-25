@@ -9,26 +9,31 @@
 		{
 			"Name": "Vox",
 			"Type": "Bus",
-			"Id": "01"
+			"Id": "01",
+			"Color": 2
 		},
 		{
 			"Name": "Inst",
 			"Type": "DCA",
-			"Id": "02"
+			"Id": "02",
+			"Color": 1
 		},
 		{
 			"Name": "Drums",
 			"Type": "Bus",
-			"Id": "03"
+			"Id": "03",
+			"Color": 4
 		},
 		{
 			"Name": "Other",
 			"Type": "DCA",
-			"Id": "4"
+			"Id": "04",
+			"Color": 3
 		},
 		{
 			"Name": "",
-			"Type": "Off"
+			"Type": "Off",
+			"Color": 7
 		}
 	]
 }

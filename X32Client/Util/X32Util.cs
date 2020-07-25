@@ -4,54 +4,8 @@ using System.Text.RegularExpressions;
 
 namespace Suhock.X32.Util
 {
-    public class X32Util
+    public static class X32Util
     {
-        public static int EncodedIncrement(int value)
-        {
-            // encoded length is the first multiple of four greater than the string length
-            return ((value + 4) & (int)0x7ffffffc);
-        }
-
-        public static string ReadString(byte[] bytes, int startIndex, out int length)
-        {
-            int index;
-
-            for (index = startIndex; index < bytes.Length; index++)
-            {
-                if (bytes[index] == 0)
-                {
-                    break;
-                }
-            }
-
-            length = EncodedIncrement(index - startIndex);
-
-            return Encoding.ASCII.GetString(bytes, startIndex, length);
-        }
-
-        public static int ReadBigEndianInt(byte[] bytes, int startIndex, out int length)
-        {
-            length = 4;
-            return BitConverter.ToInt32(ReadBigEndianBytes(bytes, length, startIndex));
-        }
-
-        public static float ReadBigEndianFloat(byte[] bytes, int startIndex, out int length)
-        {
-            length = 4;
-            return BitConverter.ToSingle(ReadBigEndianBytes(bytes, length, startIndex));
-        }
-
-        public static byte[] ReadBlob(byte[] bytes, int startIndex, out int length)
-        {
-            int blobLength = ReadBigEndianInt(bytes, startIndex, out length);
-            length += blobLength;
-            byte[] result = new byte[blobLength];
-
-            Array.ConstrainedCopy(bytes, startIndex, result, 0, blobLength);
-
-            return result;
-        }
-
         private static byte[] ReadBigEndianBytes(byte[] bytes, int startIndex, int length)
         {
             byte[] buf = new byte[length];
@@ -176,23 +130,23 @@ namespace Suhock.X32.Util
         {
             Match m;
 
-            if ((m = Regex.Match(value, @"^In(\d\d)$")).Value != "")
+            if ((m = Regex.Match(value, @"^In(\d\d)$")).Value.Length > 0)
             {
                 return int.Parse(m.Groups[1].Value); // Local input
             }
-            else if ((m = Regex.Match(value, @"^A(\d\d)$")).Value != "")
+            else if ((m = Regex.Match(value, @"^A(\d\d)$")).Value.Length > 0)
             {
                 return int.Parse(m.Groups[1].Value) + 32; // AES50-A offset
             }
-            else if ((m = Regex.Match(value, @"^B(\d\d)$")).Value != "")
+            else if ((m = Regex.Match(value, @"^B(\d\d)$")).Value.Length > 0)
             {
                 return int.Parse(m.Groups[1].Value) + 80; // AES50-B offset
             }
-            else if ((m = Regex.Match(value, @"^C(\d\d)$")).Value != "")
+            else if ((m = Regex.Match(value, @"^C(\d\d)$")).Value.Length > 0)
             {
                 return int.Parse(m.Groups[1].Value) + 128; // Card offset
             }
-            else if ((m = Regex.Match(value, @"^Aux(\d\d)$")).Value != "")
+            else if ((m = Regex.Match(value, @"^Aux(\d\d)$")).Value.Length > 0)
             {
                 return int.Parse(m.Groups[1].Value) + 160; // Auxin offset
             }

@@ -1,10 +1,9 @@
-﻿using Suhock.X32.Client;
-using Suhock.X32.Client.Message;
+﻿using Suhock.Osc;
+using Suhock.X32.Client;
 using Suhock.X32.Util;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -12,9 +11,9 @@ using System.Threading.Tasks;
 
 namespace Suhock.X32.Stream
 {
-    class X32Stream
+    internal class X32Stream
     {
-        const string DefaultConfigFilename = "x32stream.json";
+        private const string DefaultConfigFilename = "x32stream.json";
 
         private static X32StreamConfig config;
 
@@ -22,7 +21,7 @@ namespace Suhock.X32.Stream
 
         private static X32Client clientSrc;
 
-        static async Task Main(string[] args)
+        private static async Task Main(string[] args)
         {
             string configFilename = args.Length > 0 ? args[0] : DefaultConfigFilename;
 
@@ -49,13 +48,13 @@ namespace Suhock.X32.Stream
                 {
                     Console.WriteLine("Connected to " + client.Address);
                     _ = RunInit();
-                    await client.Subscribe();
+                    await client.Subscribe().ConfigureAwait(false);
                 },
                 OnDisconnect = (X32Client client) =>
                 {
                     Console.WriteLine("Disconnected from " + client.Address);
                 },
-                OnMessage = (X32Client client, X32Message msg) =>
+                OnMessage = (X32Client client, OscMessage msg) =>
                 {
                     foreach (string pattern in config.Patterns)
                     {
@@ -68,7 +67,7 @@ namespace Suhock.X32.Stream
                 }
             };
 
-            await Task.WhenAny(clientSrc.Connect(), clientDst.Connect());
+            await Task.WhenAny(clientSrc.Connect(), clientDst.Connect()).ConfigureAwait(true);
         }
 
         private static Task RunInit()
@@ -112,7 +111,7 @@ namespace Suhock.X32.Stream
                                 if (inList)
                                 {
                                     tokens.Add(token.ToString());
-                                    List<StringBuilder> newList = new List<StringBuilder>(commands.Count() * tokens.Count());
+                                    List<StringBuilder> newList = new List<StringBuilder>(commands.Count * tokens.Count);
 
                                     foreach (StringBuilder command in commands)
                                     {
@@ -148,7 +147,7 @@ namespace Suhock.X32.Stream
                                     int low = Int32.Parse(seqLow);
                                     int high = Int32.Parse(seqHigh);
 
-                                    List<StringBuilder> newList = new List<StringBuilder>(commands.Count() * (high - low + 1));
+                                    List<StringBuilder> newList = new List<StringBuilder>(commands.Count * (high - low + 1));
 
                                     for (int i = low; i <= high; i++)
                                     {
@@ -192,7 +191,7 @@ namespace Suhock.X32.Stream
                             }
                             else
                             {
-                                if (commands.Count() == 0)
+                                if (commands.Count == 0)
                                 {
                                     commands.Add(new StringBuilder());
                                 }
@@ -207,13 +206,13 @@ namespace Suhock.X32.Stream
 
                     foreach (StringBuilder command in commands)
                     {
-                        Send(clientSrc, new X32Message(command.ToString()));
+                        Send(clientSrc, new OscMessage(command.ToString()));
                     }
                 }
             });
         }
 
-        private static void Send(X32Client client, X32Message msg)
+        private static void Send(X32Client client, OscMessage msg)
         {
             X32ConsoleLogger.WriteSend(client, msg);
             client.Send(msg);
