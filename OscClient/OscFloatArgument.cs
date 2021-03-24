@@ -4,17 +4,14 @@ namespace Suhock.Osc
 {
     public class OscFloatArgument : OscArgument<float>
     {
-        public const char TypeTagChar = 'f';
+        public const byte TypeTagChar = (byte)'f';
 
         public OscFloatArgument() : this(0.0f) { }
 
-        public OscFloatArgument(float value) : base(TypeTagChar)
+        public OscFloatArgument(float value) : base(TypeTagChar, value)
         {
             Value = value;
         }
-        public OscFloatArgument(ReadOnlySpan<byte> bytes, out int bytesRead) :
-            this(OscUtil.ReadFloat(bytes, out bytesRead))
-        { }
 
         public override int GetByteCount()
         {

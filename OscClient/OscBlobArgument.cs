@@ -4,17 +4,11 @@ namespace Suhock.Osc
 {
     public class OscBlobArgument : OscArgument<byte[]>
     {
-        public const char TypeTagChar = 'b';
+        public const byte TypeTagChar = (byte)'b';
 
         public OscBlobArgument() : this(Array.Empty<byte>()) { }
 
-        public OscBlobArgument(ReadOnlySpan<byte> bytes) : base(TypeTagChar)
-        {
-            Value = bytes.ToArray();
-        }
-
-        public OscBlobArgument(ReadOnlySpan<byte> bytes, out int bytesRead) :
-            this(OscUtil.ReadBlob(bytes, out bytesRead))
+        public OscBlobArgument(ReadOnlySpan<byte> bytes) : base(TypeTagChar, bytes.ToArray())
         { }
 
         public override int GetByteCount()

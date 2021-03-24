@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace Suhock.X32.Type
+namespace Suhock.X32.Types.Enums
 {
-    public enum X32Color
+    public enum StripColor
     {
         Black = 0,
         Red = 1,
@@ -22,7 +22,7 @@ namespace Suhock.X32.Type
         WhiteInverted = 15
     }
 
-    public static class X32ColorExtensions
+    public static class StripColorExtensions
     {
         private static readonly string[] mapping =
         {
@@ -44,21 +44,21 @@ namespace Suhock.X32.Type
             "WHi"
         };
 
-        public static string ToNodeString(this X32Color color)
+        public static string ToNodeString(this StripColor color)
         {
             return mapping[(int)color];
         }
 
-        public static X32Color FromNodeString(string str)
+        public static StripColor FromNodeString(string str)
         {
-            int index = Array.BinarySearch(mapping, str);
+            int index = Array.IndexOf(mapping, str);
 
-            return index >= 0 ? (X32Color)index : X32Color.Black;
+            return index >= 0 ? (StripColor)index : StripColor.Black;
         }
 
-        public static bool IsInverted(this X32Color color)
+        public static bool IsInverted(this StripColor color)
         {
-            return color >= X32Color.BlackInverted;
+            return color >= StripColor.BlackInverted;
         }
     }
 }

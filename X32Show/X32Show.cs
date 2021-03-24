@@ -1,129 +1,120 @@
 ﻿using Suhock.Osc;
-using Suhock.X32.Client;
+using Suhock.X32.Types.Enums;
+using Suhock.X32.Types.Floats;
 using Suhock.X32.Util;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Suhock.X32.Show
 {
-    internal class X32Show
+    public sealed class X32Show : IDisposable
     {
-        private const string DefaultConfigFilename = "x32show.json";
+        private readonly X32Client _client;
 
-        public class X32ShowConfig
+
+        public X32Show(X32ShowConfig config)
         {
-            public string Address { get; set; }
-            public int Port { get; set; } = X32Client.DefaultPort;
+            Config = config ?? throw new ArgumentNullException(nameof(config));
+            _client = new X32Client(Config.Address, Config.Port);
         }
 
-        private static X32ShowConfig config;
+        public X32ShowConfig Config { get; }
 
-        private static async Task Main(string[] args)
+        public void Dispose()
         {
-            string configFilename = args.Length > 0 ? args[0] : DefaultConfigFilename;
+            _client.Dispose();
+        }
 
-            using (FileStream fs = File.OpenRead(configFilename))
-            {
-                config = await JsonSerializer.DeserializeAsync<X32ShowConfig>(fs);
-            }
-
+        public async Task Run()
+        {
             OscMessage freqFader = null;
             OscMessage ampFader = null;
 
-            X32Client client = new X32Client(config.Address, config.Port)
+            _client.MessageReceived += (_, msg) =>
             {
-                OnMessage = (X32Client client, OscMessage msg) =>
+                if (msg.Address == "/dca/1/fader")
                 {
-                    if (msg.Address == "/dca/1/fader")
-                    {
-                        freqFader = msg;
-                        X32ConsoleLogger.WriteReceive(client, msg);
-                    }
-                    else if (msg.Address == "/dca/2/fader")
-                    {
-                        ampFader = msg;
-                        X32ConsoleLogger.WriteReceive(client, msg);
-                    }
+                    freqFader = msg;
+                    X32ConsoleLogger.WriteReceive(_client, msg);
+                }
+                else if (msg.Address == "/dca/2/fader")
+                {
+                    ampFader = msg;
+                    X32ConsoleLogger.WriteReceive(_client, msg);
                 }
             };
 
-            try
+            _client.Run();
+            _ = _client.Subscribe();
+
+            for (int i = 0; i < 16; i++)
             {
-                _ = client.Connect();
-                _ = client.Subscribe();
-
-                for (int i = 0; i < 16; i++)
-                {
-                    Send(client, new OscMessage("/bus/" + (i + 1).ToString().PadLeft(2, '0') + "/mix/on", 0));
-                }
-
-                for (int i = 0; i < 32; i += 2)
-                {
-                    Send(client, new OscMessage("/config/chlink/" + (i + 1).ToString() + "-" + (i + 2).ToString(), 0));
-                }
-
-                Send(client, new OscMessage("/main/st/mix/on", 0));
-                Send(client, new OscMessage("/dca/1/fader"));
-                Send(client, new OscMessage("/dca/2/fader"));
-
-                int interval = 50;
-                float meter = 0.0f;
-                int colorOffset = 0;
-                int[] colors = new int[] {
-                1, 3, 2, 6, 4, 5, 7
-            };
-
-                float[] levels = new float[16];
-
-                while (true)
-                {
-                    List<Task> tasks = new List<Task>(3 * 32);
-
-                    if (freqFader != null && ampFader != null)
-                    {
-                        meter += 0.05f + freqFader.GetValue<float>(0) * 0.1f;
-
-                        colorOffset++;
-
-                        float width = (float)((Math.Cos(meter * Math.PI) + 1) / 2);
-                        int minMute = (int)(8.5 * (1 - width));
-                        int maxMute = 15 - minMute;
-
-                        for (int i = 15; i >= 1; i--)
-                        {
-                            levels[i] = levels[i - 1];
-                        }
-
-                        levels[0] = (float)(ampFader.GetValue<float>(0) * Math.Sin(meter * 2 * Math.PI) + 1) / 2;
-
-                        for (int i = 0; i < 32; i++)
-                        {
-                            Send(client, new OscMessage("/ch/" + (i + 1).ToString().PadLeft(2, '0') + "/mix/fader", levels[i % 16]));
-                        }
-
-                        for (int i = 0; i < 32; i++)
-                        {
-                            Send(client, new OscMessage("/ch/" + (i + 1).ToString().PadLeft(2, '0') + "/mix/on", (i % 16) >= minMute && (i % 16) <= maxMute ? 0 : 1));
-                            Send(client, new OscMessage("/ch/" + (i + 1).ToString().PadLeft(2, '0') + "/config/color", colors[(colorOffset * interval / 1000 + i) % colors.Length]));
-                        }
-                    }
-
-                    await Task.Delay(50).ConfigureAwait(true);
-                }
+                Send(_client.MessageFactory.Create("/bus/" + (i + 1).ToString().PadLeft(2, '0') + "/mix/on", 0));
             }
-            finally
+
+            for (int i = 0; i < 32; i += 2)
             {
-                client.Dispose();
+                Send(_client.MessageFactory.Create("/config/chlink/" + (i + 1).ToString() + "-" + (i + 2).ToString(), 0));
+            }
+
+            Send(_client.MessageFactory.Create("/main/st/mix/on", 0));
+            Send(_client.MessageFactory.Create("/dca/1/fader"));
+            Send(_client.MessageFactory.Create("/dca/2/fader"));
+
+            int interval = 50;
+            float meter = 0.0f;
+            int colorOffset = 0;
+            StripColor[] colors = new StripColor[] {
+                StripColor.Red,
+                StripColor.Yellow,
+                StripColor.Green,
+                StripColor.Cyan,
+                StripColor.Blue,
+                StripColor.Magenta,
+                StripColor.White
+            };
+
+            float[] levels = new float[16];
+
+            while (true)
+            {
+                if (freqFader != null && ampFader != null)
+                {
+                    meter += 0.05f + freqFader.GetValue<float>(0) * 0.1f;
+
+                    colorOffset++;
+
+                    float width = (float)((Math.Cos(meter * Math.PI) + 1) / 2);
+                    int minMute = (int)(8.5 * (1 - width));
+                    int maxMute = 15 - minMute;
+
+                    for (int i = 15; i >= 1; i--)
+                    {
+                        levels[i] = levels[i - 1];
+                    }
+
+                    levels[0] = (float)(ampFader.GetValue<float>(0) * Math.Sin(meter * 2 * Math.PI) + 1) / 2;
+
+                    for (int i = 0; i < 32; i++)
+                    {
+                        _client.Root.Channel(i + 1).Mix.SetFader(FaderFineLevel.FromEncodedValue(levels[i % 16]));
+                    }
+
+                    for (int i = 0; i < 32; i++)
+                    {
+                        _client.Root.Channel(i + 1).Mix.SetOn((i % 16) >= minMute && (i % 16) <= maxMute);
+                        _client.Root.Channel(i + 1).Config.SetColor(colors[(colorOffset * interval / 1000 + i) % colors.Length]);
+                    }
+                }
+
+                await Task.Delay(50).ConfigureAwait(true);
             }
         }
 
-        private static void Send(X32Client client, OscMessage msg)
+        private void Send(OscMessage msg)
         {
-            //_ = X32ConsoleLogger.WriteSend(client, msg);
-            client.Send(msg);
+            //X32ConsoleLogger.WriteSend(_client, msg);
+            _client.Send(msg);
         }
     }
 }

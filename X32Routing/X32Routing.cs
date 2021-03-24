@@ -4,123 +4,80 @@ using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Google.Apis.Util.Store;
 using Suhock.Osc;
-using Suhock.X32.Client;
-using Suhock.X32.Type;
+using Suhock.X32.Types.Sets;
+using Suhock.X32.Types.Enums;
+using Suhock.X32.Types.Floats;
 using Suhock.X32.Util;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Suhock.X32.Routing
 {
-    class X32Routing
+    public sealed class X32Routing : IDisposable
     {
-        private const string DefaultConfigFilename = "x32routing.json";
+        private readonly X32Client _client;
 
-        public class X32RoutingConfig
+        public X32Routing(X32RoutingConfig config)
         {
-            public string Address { get; set; }
-            public int Port { get; set; } = X32Client.DefaultPort;
-            public string CredentialsFilename { get; set; } = "credentials.json";
-            public string SpreadsheetId { get; set; }
-            public string SpreadsheetRange { get; set; } = "Channels!A1:F";
-            public string ConsoleName { get; set; }
-            public bool DryRun { get; set; } = false;
+            Config = config ?? throw new ArgumentNullException(nameof(config));
+            _client = new X32Client(Config.Address, Config.Port);
 
-            public class Group
+            _client.MessageSent += (source, msg) =>
             {
-                public string Name { get; set; }
-                public string Type { get; set; }
-                public string Id { get; set; }
-                public X32Color Color { get; set; }
-            }
-
-            public List<Group> Groups { get; set; } = new List<Group>();
-        }
-
-        private class ChannelInfo
-        {
-            public string Id;
-            public string Name;
-            public string Group;
-            public string Source;
-        }
-
-        private class Headamp
-        {
-            public int Index;
-            public float Gain;
-            public int Phantom;
+                X32ConsoleLogger.WriteSend(_client, msg);
+                _client.Send(msg);
+            };
         }
 
         public X32RoutingConfig Config { get; }
 
-        public X32Routing(X32RoutingConfig config)
+        public void Dispose()
         {
-            Config = config;
+            _client.Dispose();
         }
 
-        public void Run()
+        public async Task Run()
         {
             // list of all channels in spreadsheet
-            IList<ChannelInfo> channels = ReadSheet();
+            IList<ChannelState> channels = ReadSheet();
 
-            // mapping of channel id to original headamp configuration
-            Dictionary<string, Headamp> headamps = new Dictionary<string, Headamp>(32);
+            _client.Run();
 
-            X32Client client = new X32Client(Config.Address, Config.Port)
+            Dictionary<int, HeadampState> headamps = new Dictionary<int, HeadampState>(channels.Count);
+
+            foreach (ChannelState channel in channels)
             {
-                OnConnect = (X32Client client) =>
+                OscMessage haMsg = await QueryAsync("/-ha/" + (channel.Id - 1).ToString().PadLeft(2, '0') + "/index").ConfigureAwait(true);
+                int haIndex = haMsg.GetValue<int>(0);
+
+                if (haIndex > -1)
                 {
-                    X32ConsoleLogger.WriteLine(ConsoleColor.White, "Connected to " + client.Address);
-                    X32ConsoleLogger.WriteLine();
-                },
-                OnDisconnect = (X32Client client) =>
-                {
-                    X32ConsoleLogger.WriteLine(ConsoleColor.White, "\nDisconnected from " + client.Address);
-                }
-            };
-
-            client.Connect();
-
-            foreach (ChannelInfo channel in channels)
-            {
-                string channelId = channel.Id.PadLeft(2, '0');
-
-                Send(client,
-                    new OscMessage("/-ha/" + channelId + "/index"),
-                    (X32Client client, OscMessage msg) =>
-                        headamps[channelId] = new Headamp()
+                    if (!headamps.ContainsKey(haIndex))
+                    {
+                        headamps[haIndex] = new HeadampState()
                         {
-                            Index = msg.GetValue<int>(0),
-                            Gain = -1.0f,
-                            Phantom = -1
-                        });
-            }
+                            Index = haMsg.GetValue<int>(0),
+                            Gain = (await QueryAsync("/headamp/" + haIndex.ToString().PadLeft(3, '0') + "/gain").ConfigureAwait(true)).GetValue<float>(0),
+                            Phantom = (await QueryAsync("/headamp/" + haIndex.ToString().PadLeft(3, '0') + "/phantom").ConfigureAwait(true)).GetValue<int>(0)
+                        };
+                    }
 
-            foreach (var (_, headamp) in headamps)
-            {
-                if (headamp.Index > -1)
+                    channel.OriginalHeadamp = headamps[haIndex];
+                }
+                else
                 {
-                    Send(client,
-                        new OscMessage("/headamp/" + headamp.Index.ToString().PadLeft(3, '0') + "/gain"),
-                        (X32Client client, OscMessage msg) => headamp.Gain = msg.GetValue<float>(0));
-
-                    Send(client,
-                        new OscMessage("/headamp/" + headamp.Index.ToString().PadLeft(3, '0') + "/phantom"),
-                        (X32Client client, OscMessage msg) => headamp.Phantom = msg.GetValue<int>(0));
+                    channel.OriginalHeadamp = null;
                 }
             }
 
             foreach (var channel in channels)
             {
-                int userInIndex = X32Util.ConvertStringToUserInIndex(channel.Source);
-                int headampIndex = X32Util.ConvertUserInIndexToHeadampIndex(userInIndex);
-                Headamp oldHeadamp = headamps[channel.Id];
+                int uiIndex = X32Util.ConvertStringToUserInIndex(channel.Source);
+                int haIndex = X32Util.ConvertUserInIndexToHeadampIndex(uiIndex);
                 List<object> logParts = new List<object>
                 {
                     "\n",
@@ -131,100 +88,104 @@ namespace Suhock.X32.Routing
                     ConsoleColor.DarkGray,
                     " Source=",
                     ConsoleColor.White,
-                    X32Util.ConvertUserInIndexToString(userInIndex)
+                    X32Util.ConvertUserInIndexToString(uiIndex)
                 };
 
-                if (oldHeadamp.Index >= 0 && headampIndex >= 0)
+                if (channel.OriginalHeadamp != null && haIndex > -1)
                 {
                     logParts.AddRange(new object[]
                     {
                         ConsoleColor.DarkGray,
                         " Gain=",
                         ConsoleColor.White,
-                        string.Format("{0:+0.0;-0.0}dB", X32Util.ConvertFloatToHeadampGain(oldHeadamp.Gain)),
+                        string.Format("{0:+0.0;-0.0}dB", X32Util.ConvertFloatToHeadampGain(channel.OriginalHeadamp.Gain)),
                         ConsoleColor.DarkGray,
                         " 48V=",
                         ConsoleColor.White,
-                        oldHeadamp.Phantom > 0 ? "On" : "Off"
+                        channel.OriginalHeadamp.Phantom > 0 ? "On" : "Off"
                     });
                 }
 
                 X32ConsoleLogger.WriteLine(logParts.ToArray());
 
-                string channelAddress = "/ch/" + channel.Id;
+                var channelClient = _client.Root.Channel(channel.Id);
 
-                Send(client, new OscMessage("/config/userrout/in/" + channel.Id, userInIndex));
-                Send(client, new OscMessage(channelAddress + "/config/name", channel.Name));
+                Send("/config/userrout/in/" + channel.Id.ToString().PadLeft(2, '0'), uiIndex);
+                channelClient.Config.SetName(channel.Name);
+
+                if (!channel.On)
+                {
+                    channelClient.Config.SetColor(StripColor.Black);
+                    channelClient.Group.SetMuteGroups(new MuteGroupSet());
+                    channelClient.Mix.SetOn(false);
+                    channelClient.Mix.SetFader(FaderFineLevel.MinValue);
+                }
 
                 foreach (var group in Config.Groups)
                 {
                     if (group.Type == "Bus")
                     {
-                        // all channel should be assigned to grouping buses with type GRP set and active only if channel belongs to group
-                        Send(client, new OscMessage(channelAddress + "/mix/" + group.Id.PadLeft(2, '0') + "/type", 5));
-                        Send(client, new OscMessage(channelAddress + "/mix/" + group.Id.PadLeft(2, '0') + "/on", channel.Group == group.Name ? 1 : 0));
+                        // all channels should be assigned to grouping buses with type GRP set and active only if channel belongs to group
+                        channelClient.Mix.Send(group.Id).SetTapType(InputTap.Group);
+                        channelClient.Mix.Send(group.Id).SetOn(channel.Group == group.Name);
                     }
 
                     if (channel.Group == group.Name)
                     {
-                        int st = 1;
-                        int dca = 0;
+                        bool st;
+                        DcaGroupSet dca = new DcaGroupSet();
 
                         switch (group.Type)
                         {
                             case "Bus":
                             case "Off":
-                                // channels assigned to grouping bus should not be in main mix
-                                st = 0;
-                                dca = 0;
+                                st = false; // channels assigned to grouping bus should not be in main mix
                                 break;
 
                             case "DCA":
-                                st = 1;
-                                dca = 1 << (int.Parse(group.Id) - 1);
-                                break;
-
-                            case "":
+                                st = true; // channels assigned to DCA groups should be in the main mix
+                                dca.Add(group.Id);
                                 break;
 
                             default:
-                                X32ConsoleLogger.WriteLine(ConsoleColor.DarkYellow, "Warning: Unknown group type \"{0}\"", group.Type);
+                                X32ConsoleLogger.WriteLine(ConsoleColor.Yellow, "Warning: Unknown group type \"{0}\"", group.Type);
+                                goto case "";
+
+                            case "":
+                                st = true;
                                 break;
                         }
 
-                        Send(client, new OscMessage(channelAddress + "/config/color", (int)group.Color));
-                        Send(client, new OscMessage(channelAddress + "/mix/st", st));
-                        Send(client, new OscMessage(channelAddress + "/grp/dca", dca));
+                        channelClient.Mix.SetStereoSendOn(st);
+                        channelClient.Group.SetDcaGroups(dca);
+
+                        if (channel.On)
+                        {
+                            channelClient.Config.SetColor(group.Color);
+                            channelClient.Group.SetMuteGroups(group.MuteGroups);
+                        }
                     }
                 }
 
-                if (oldHeadamp.Index >= 0 && headampIndex >= 0)
+                if (channel.OriginalHeadamp != null && haIndex > -1)
                 {
-                    Send(client, new OscMessage("/headamp/" + headampIndex.ToString().PadLeft(3, '0') + "/gain", oldHeadamp.Gain));
-                    Send(client, new OscMessage("/headamp/" + headampIndex.ToString().PadLeft(3, '0') + "/phantom", oldHeadamp.Phantom));
+                    Send("/headamp/" + haIndex.ToString().PadLeft(3, '0') + "/gain", channel.OriginalHeadamp.Gain);
+                    Send("/headamp/" + haIndex.ToString().PadLeft(3, '0') + "/phantom", channel.OriginalHeadamp.Phantom);
                 }
             }
-
-            client.Disconnect();
-            client.Dispose();
         }
 
-        private IList<ChannelInfo> ReadSheet()
+        private IList<ChannelState> ReadSheet()
         {
             UserCredential credential;
 
             X32ConsoleLogger.WriteLine(
-                ConsoleColor.DarkGray,
-                "Reading ",
-                ConsoleColor.DarkGreen,
-                "Google Spreadsheet ",
-                ConsoleColor.White,
-                Config.SpreadsheetId);
+                ConsoleColor.DarkGray, "Reading ",
+                ConsoleColor.DarkGreen, "Google Spreadsheet ",
+                ConsoleColor.White, Config.SpreadsheetId);
             X32ConsoleLogger.WriteLine(
-                ConsoleColor.DarkGray,
-                "Range ",
-                ConsoleColor.White,
-                Config.SpreadsheetRange);
+                ConsoleColor.DarkGray, "Range ",
+                ConsoleColor.White, Config.SpreadsheetRange);
 
             using (var stream = new FileStream(Config.CredentialsFilename, FileMode.Open, FileAccess.Read))
             {
@@ -250,7 +211,7 @@ namespace Suhock.X32.Routing
                 values = response.Values;
             }
 
-            List<ChannelInfo> result = new List<ChannelInfo>();
+            List<ChannelState> result = new List<ChannelState>();
 
             if (values != null && values.Count > 1)
             {
@@ -266,14 +227,10 @@ namespace Suhock.X32.Routing
                     }
 
                     X32ConsoleLogger.WriteLine(
-                        ConsoleColor.DarkGray,
-                        "Found ",
-                        ConsoleColor.White,
-                        header,
-                        ConsoleColor.DarkGray,
-                        " in column ",
-                        ConsoleColor.White,
-                        (char)('A' + index));
+                        ConsoleColor.DarkGray, "Found ",
+                        ConsoleColor.White, header,
+                        ConsoleColor.DarkGray, " in column ",
+                        ConsoleColor.White, (char)('A' + index));
 
                     return index;
                 }
@@ -281,6 +238,7 @@ namespace Suhock.X32.Routing
                 int consoleIndex = ColumnIndex("Console");
                 int channelIndex = ColumnIndex("Channel");
                 int nameIndex = ColumnIndex("Name");
+                int onIndex = ColumnIndex("On");
                 int groupIndex = ColumnIndex("Group");
                 int sourceIndex = ColumnIndex("Source");
 
@@ -294,17 +252,18 @@ namespace Suhock.X32.Routing
 
                         if (int.TryParse(strId, out int intId) && intId >= 1 && intId <= 32)
                         {
-                            result.Add(new ChannelInfo()
+                            result.Add(new ChannelState()
                             {
-                                Id = strId.PadLeft(2, '0'),
+                                Id = intId,
                                 Name = row.Count > nameIndex ? row[nameIndex].ToString() : "",
+                                On = row.Count > onIndex && (bool)row[onIndex].Equals("TRUE"),
                                 Group = row.Count > groupIndex ? row[groupIndex].ToString() : "",
                                 Source = row.Count > sourceIndex ? row[sourceIndex].ToString() : ""
                             });
                         }
                         else
                         {
-                            X32ConsoleLogger.WriteLine(ConsoleColor.DarkYellow, "Unsupported channel ID \"{0}\"", strId);
+                            X32ConsoleLogger.WriteLine(ConsoleColor.Yellow, "Warning: Unsupported channel string \"{0}\"", strId);
                         }
                     }
                 }
@@ -313,48 +272,48 @@ namespace Suhock.X32.Routing
             return result;
         }
 
-        private void Send(X32Client client, OscMessage msg, X32Client.MessageHandler handler)
+        private async Task<OscMessage> QueryAsync(string address, params object[] args)
         {
-            bool dryRun = Config.DryRun && msg.Arguments.Count > 0;
+            var msg = _client.MessageFactory.Create(address, args);
 
-            if (dryRun)
+            OscMessage response = await _client.QueryAsync(msg).ConfigureAwait(true);
+            X32ConsoleLogger.WriteReceive(_client, response);
+
+            return response;
+        }
+
+        private void Send(string address, params object[] args)
+        {
+            var msg = _client.MessageFactory.Create(address, args);
+
+            if (Config.DryRun && args.Length > 0)
             {
                 X32ConsoleLogger.Write("Would ");
+                X32ConsoleLogger.WriteSend(_client, msg);
+
+                return;
             }
 
-            X32ConsoleLogger.WriteSend(client, msg);
-
-            if (handler != null)
-            {
-                client.Send(msg, (X32Client client, OscMessage msg) =>
-                    {
-                        X32ConsoleLogger.WriteReceive(client, msg);
-                        handler?.Invoke(client, msg);
-                    });
-            }
-            else
-            {
-                client.Send(msg);
-            }
+            X32ConsoleLogger.WriteSend(_client, msg);
+            _client.Send(msg);
         }
 
-        private void Send(X32Client client, OscMessage msg)
+        private class ChannelState
         {
-            Send(client, msg, null);
+            public int Id;
+            public string Name;
+            public string Group;
+            public bool On;
+            public string Source;
+
+            public HeadampState OriginalHeadamp = null;
         }
 
-        private static async Task Main(string[] args)
+        private class HeadampState
         {
-            string configFilename = args.Length > 0 ? args[0] : DefaultConfigFilename;
-            X32RoutingConfig config;
-
-            using (FileStream fs = File.OpenRead(configFilename))
-            {
-                config = await JsonSerializer.DeserializeAsync<X32RoutingConfig>(fs);
-            }
-
-            X32Routing x32Routing = new X32Routing(config);
-            x32Routing.Run();
+            public int Index;
+            public float Gain;
+            public int Phantom;
         }
     }
 }

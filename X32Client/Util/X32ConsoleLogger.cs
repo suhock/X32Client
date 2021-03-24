@@ -1,5 +1,4 @@
 ﻿using Suhock.Osc;
-using Suhock.X32.Client;
 using System;
 using System.Collections.Generic;
 
@@ -7,7 +6,7 @@ namespace Suhock.X32.Util
 {
     public static class X32ConsoleLogger
     {
-        private static readonly object Lock = new object();
+        private static readonly object _lock = new object();
 
         public static void Write(params object[] parts)
         {
@@ -21,7 +20,7 @@ namespace Suhock.X32.Util
 
         private static void WriteParts(object[] parts, bool newLine)
         {
-            lock (Lock)
+            lock (_lock)
             {
                 ConsoleColor originalColor = Console.ForegroundColor;
                 int startIndex = 0;

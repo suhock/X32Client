@@ -1,147 +1,76 @@
 ﻿using System;
-using System.Net;
-using System.Net.Sockets;
 using System.Threading.Tasks;
 
 namespace Suhock.Osc
 {
-    public class OscClient : IDisposable
+    public class OscClient
     {
-        private bool IsDisposed = false;
-
-        public UdpClient Client { get; private set; }
-
-        public OscClient(string address, int port) : this(new UdpClient(address, port))
+        /// <summary>
+        /// Creates an OSC client instance with a default OscMessageFactory implementation, accepting the default
+        /// argument types specified in the OSC specification.
+        /// </summary>
+        /// <param name="connection">an OSC connection implementation</param>
+        public OscClient(IOscConnection connection)
         {
+            Connection = connection;
+            MessageFactory = new OscMessageFactory(new OscArgumentFactory());
         }
 
-        public OscClient(UdpClient client)
+        /// <summary>
+        /// Creates an OSC client instance.
+        /// </summary>
+        /// <param name="connection">an OSC connection implementation</param>
+        /// <param name="messageFactory">a </param>
+        public OscClient(IOscConnection connection, IOscMessageFactory messageFactory)
         {
-            Client = client;
+            Connection = connection;
+            MessageFactory = messageFactory;
         }
 
-        ~OscClient()
+        public IOscConnection Connection { get; }
+
+        public IOscMessageFactory MessageFactory { get; }
+
+        private void VerifyState()
         {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (IsDisposed)
-            {
-                return;
-            }
-
-            if (disposing)
-            {
-                Client.Dispose();
-            }
-
-            Client = null;
-            IsDisposed = true;
-        }
-
-        public void Close()
-        {
-            Dispose(true);
-        }
-
-        public int Send(OscMessage msg)
-        {
-            if (IsDisposed)
-            {
-                throw new ObjectDisposedException(this.GetType().FullName);
-            }
-
-            if (msg == null)
-            {
-                throw new ArgumentNullException(nameof(msg));
-            }
-
-            byte[] bytes = msg.GetBytes();
-            return Client.Send(bytes, bytes.Length);
-        }
-
-        public Task<int> SendAsync(OscMessage msg)
-        {
-            if (IsDisposed)
-            {
-                throw new ObjectDisposedException(this.GetType().FullName);
-            }
-
-            if (msg == null)
-            {
-                throw new ArgumentNullException(nameof(msg));
-            }
-
-            byte[] bytes = msg.GetBytes();
-            return Task<int>.Factory.FromAsync(Client.SendAsync(bytes, bytes.Length), (result) => ((Task<int>)result).Result);
-        }
-
-        public IAsyncResult BeginSend(OscMessage msg, AsyncCallback requestCallback)
-        {
-            if (IsDisposed)
-            {
-                throw new ObjectDisposedException(this.GetType().FullName);
-            }
-
-            if (msg == null)
-            {
-                throw new ArgumentNullException(nameof(msg));
-            }
-
-            byte[] bytes = msg.GetBytes();
-            return Client.BeginSend(bytes, bytes.Length, requestCallback, msg);
-        }
-
-        public int EndSend(IAsyncResult asyncResult)
-        {
-            if (IsDisposed)
-            {
-                throw new ObjectDisposedException(this.GetType().FullName);
-            }
-
-            return Client.EndSend(asyncResult);
         }
 
         public OscMessage Receive()
         {
-            if (IsDisposed)
-            {
-                throw new ObjectDisposedException(this.GetType().FullName);
-            }
+            VerifyState();
 
-            IPEndPoint ep = new IPEndPoint(IPAddress.Any, 0);
-            byte[] bytes = Client.Receive(ref ep);
-
-            return new OscMessage(bytes);
+            return MessageFactory.Create(Connection.Receive(), out _);
         }
 
-        public IAsyncResult BeginReceive(AsyncCallback requestCallback, object state)
+        public async Task<OscMessage> ReceiveAsync()
         {
-            if (IsDisposed)
-            {
-                throw new ObjectDisposedException(this.GetType().FullName);
-            }
+            VerifyState();
 
-            return Client.BeginReceive(requestCallback, state);
+            return MessageFactory.Create(await Connection.ReceiveAsync(), out _);
         }
 
-        public Task<OscMessage> ReceiveAsync()
+        public void Send(OscMessage msg)
         {
-            if (IsDisposed)
+            VerifyState();
+
+            if (msg == null)
             {
-                throw new ObjectDisposedException(this.GetType().FullName);
+                throw new ArgumentNullException(nameof(msg));
             }
 
-            return Task<OscMessage>.Factory.FromAsync(Client.ReceiveAsync(), (result) =>
-                new OscMessage(((Task<UdpReceiveResult>)result).Result.Buffer));
+            Connection.Send(msg.GetBytes());
+        }
+
+        public async Task SendAsync(OscMessage msg)
+        {
+            VerifyState();
+
+            if (msg == null)
+            {
+                throw new ArgumentNullException(nameof(msg));
+            }
+
+            await Connection.SendAsync(msg.GetBytes());
         }
     }
 }

@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>Suhock.X32.Client</RootNamespace>
+    <RootNamespace>Suhock.X32</RootNamespace>
     <Authors>Matthew Suhocki</Authors>
     <Company>Matthew Suhocki</Company>
   </PropertyGroup>

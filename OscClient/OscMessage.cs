@@ -6,99 +6,49 @@ namespace Suhock.Osc
 {
     public class OscMessage
     {
+        public OscMessage(string address)
+        {
+            Address = address;
+            Arguments = new List<IOscArgument>();
+        }
+
+        public OscMessage(string address, List<IOscArgument> arguments)
+        {
+            Address = address;
+            Arguments = new List<IOscArgument>(arguments);
+        }
+
+        public OscMessage(string address, params IOscArgument[] arguments)
+        {
+            Address = address;
+            Arguments = new List<IOscArgument>(arguments);
+        }
+
         public string Address { get; set; }
 
-        public List<OscArgument> Arguments { get; }
+        public List<IOscArgument> Arguments { get; }
 
-        public OscMessage(string address, List<OscArgument> arguments)
+        private byte[] GetTypeTagByteString()
         {
-            Address = address;
-            Arguments = new List<OscArgument>(arguments);
-        }
+            byte[] bytes = new byte[Arguments.Count + 1];
+            bytes[0] = (byte)',';
 
-        public OscMessage(string address, params OscArgument[] arguments)
-        {
-            Address = address;
-            Arguments = new List<OscArgument>(arguments);
-        }
-
-        public OscMessage(string address) : this(address, Array.Empty<OscArgument>()) { }
-
-        public OscMessage(string address, string value) : this(address, new OscStringArgument(value)) { }
-
-        public OscMessage(string address, int value) : this(address, new OscIntArgument(value)) { }
-
-        public OscMessage(string address, float value) : this(address, new OscFloatArgument(value)) { }
-
-        public OscMessage(string address, params object[] values)
-        {
-            Address = address;
-            Arguments = new List<OscArgument>(values.Length);
-
-            foreach (object value in values)
+            for (int i = 0; i < Arguments.Count; i++)
             {
-                OscArgument arg = OscArgument.Factory.FromValue(value);
-
-                if (arg == null)
-                { 
-                    throw new Exception("Invalid type: " + value.GetType().ToString());
-                }
-
-                Arguments.Add(arg);
-            }
-        }
-
-        public OscMessage(ReadOnlySpan<byte> bytes): this(bytes, out _) { }
-
-        public OscMessage(ReadOnlySpan<byte> bytes, out int length)
-        {
-            Address = OscUtil.ReadString(bytes, out int partLength);
-            length = partLength;
-            bytes = bytes[partLength..];
-
-            string typeTagString = OscUtil.ReadString(bytes, out partLength);
-            
-            if (typeTagString.Length == 0 || typeTagString[0] != ',')
-            {
-                return;
+                bytes[i + 1] = Arguments[i].TypeTag;
             }
 
-            length += partLength;
-
-            Arguments = new List<OscArgument>(typeTagString.Length - 1);
-
-            for (int i = 1; i < typeTagString.Length; i++)
-            {
-                bytes = bytes[partLength..];
-                OscArgument arg = OscArgument.Factory.FromBytes(typeTagString[i], bytes, out partLength);
-
-                if (arg == null)
-                {
-                    throw new InvalidOperationException("Invalid message");
-                }
-
-                Arguments.Add(arg);
-                length += partLength;
-            }
+            return bytes;
         }
 
         public string GetTypeTagString()
         {
-            StringBuilder tags = new StringBuilder(Arguments.Count + 1);
-
-            tags.Append(',');
-
-            for (int i = 0; i < Arguments.Count; i++)
-            {
-                tags.Append(Arguments[i].TypeTag);
-            }
-
-            return tags.ToString();
+            return Encoding.ASCII.GetString(GetTypeTagByteString());
         }
 
         public T GetValue<T>(int index)
         {
-            if (index > Arguments.Count)
+            if (index >= Arguments.Count)
             {
                 throw new IndexOutOfRangeException();
             }
@@ -114,10 +64,10 @@ namespace Suhock.Osc
             totalLength += length;
             target = target[length..];
 
-            length = OscUtil.WriteString(target, GetTypeTagString());
+            length = OscUtil.WriteByteString(target, GetTypeTagByteString());
             totalLength += length;
 
-            foreach (OscArgument arg in Arguments)
+            foreach (IOscArgument arg in Arguments)
             {
                 target = target[length..];
                 length = arg.WriteBytes(target);
@@ -131,7 +81,7 @@ namespace Suhock.Osc
         {
             int length = OscUtil.AlignOffset(Address.Length + 1) + OscUtil.AlignOffset(Arguments.Count + 1);
 
-            foreach (OscArgument arg in Arguments)
+            foreach (IOscArgument arg in Arguments)
             {
                 length += arg.GetByteCount();
             }
@@ -153,7 +103,7 @@ namespace Suhock.Osc
 
             sb.Append(Address).Append(' ').Append(GetTypeTagString());
 
-            foreach (OscArgument arg in Arguments)
+            foreach (IOscArgument arg in Arguments)
             {
                 sb.Append(' ').Append(arg.ToString());
             }

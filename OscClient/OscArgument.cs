@@ -1,23 +1,18 @@
 ﻿using System;
-using System.Collections.Generic;
 
 namespace Suhock.Osc
 {
-    public abstract class OscArgument
+    /// <summary>
+    /// Base class for OSC protocol message arguments
+    /// </summary>
+    public abstract class OscArgument : IOscArgument
     {
-        public static OscArgumentFactoryBag Factory { get; } = new OscArgumentFactoryBag();
-
-        static OscArgument()
-        {
-            Factory.AddFactory(new OscArgumentFactory());
-        }
-
-        protected OscArgument(char typeTag)
+        protected OscArgument(byte typeTag)
         {
             TypeTag = typeTag;
         }
 
-        public char TypeTag { get; }
+        public byte TypeTag { get; }
 
         public abstract int GetByteCount();
 
@@ -38,93 +33,24 @@ namespace Suhock.Osc
         public abstract override string ToString();
     }
 
+    /// <summary>
+    /// Represents an OSC protocol message argument with a value of native type <c>T</c>
+    /// </summary>
+    /// <typeparam name="T">The native type that this argument type represents</typeparam>
     public abstract class OscArgument<T> : OscArgument
     {
+        /// <summary>
+        /// The value of the argument
+        /// </summary>
         public T Value { get; set; }
 
-        protected OscArgument(char typeTag) : base(typeTag) { }
+        protected OscArgument(byte typeTag, T value) : base(typeTag) {
+            Value = value;
+        }
 
         public override string ToString()
         {
             return '[' + Value.ToString() + ']';
-        }
-    }
-
-    public interface IOscArgumentFactory
-    {
-        public OscArgument FromBytes(char typeTag, ReadOnlySpan<byte> bytes, out int length);
-
-        public OscArgument FromValue(object value);
-    }
-
-    public class OscArgumentFactory: IOscArgumentFactory
-    {
-        public OscArgument FromBytes(char typeTag, ReadOnlySpan<byte> bytes, out int length)
-        {
-            length = 0;
-
-            return (char)typeTag switch
-            {
-                OscStringArgument.TypeTagChar => new OscStringArgument(bytes, out length),
-                OscIntArgument.TypeTagChar => new OscIntArgument(bytes, out length),
-                OscFloatArgument.TypeTagChar => new OscFloatArgument(bytes, out length),
-                OscBlobArgument.TypeTagChar => new OscBlobArgument(bytes, out length),
-                _ => null
-            };
-        }
-
-        public OscArgument FromValue(object value)
-        {
-            return value switch
-            {
-                string stringValue => new OscStringArgument(stringValue),
-                int intValue => new OscIntArgument(intValue),
-                float floatValue => new OscFloatArgument(floatValue),
-                byte[] blobValue => new OscBlobArgument(blobValue),
-                _ => null,
-            };
-        }
-    }
-
-    public class OscArgumentFactoryBag : IOscArgumentFactory
-    {
-        private readonly Stack<IOscArgumentFactory> Factories = new Stack<IOscArgumentFactory>();
-
-        public void AddFactory(IOscArgumentFactory factory)
-        {
-            Factories.Push(factory);
-        }
-
-        public OscArgument FromBytes(char typeTag, ReadOnlySpan<byte> bytes, out int length)
-        {
-            foreach (IOscArgumentFactory factory in Factories)
-            {
-                OscArgument arg = factory.FromBytes(typeTag, bytes, out length);
-
-                if (arg != null)
-                {
-                    return arg;
-                }
-            }
-
-            length = 0;
-
-            return null;
-        }
-
-        public OscArgument FromValue(object value)
-        {
-            foreach (IOscArgumentFactory factory in Factories)
-            {
-                OscArgument arg = factory.FromValue(value);
-
-                if (arg != null)
-                {
-                    return arg;
-                }
-            }
-
-            return null;
         }
     }
 }

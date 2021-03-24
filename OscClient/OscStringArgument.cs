@@ -4,18 +4,14 @@ namespace Suhock.Osc
 {
     public class OscStringArgument : OscArgument<string>
     {
-        public const char TypeTagChar = 's';
+        public const byte TypeTagChar = (byte)'s';
 
         public OscStringArgument() : this("") { }
 
-        public OscStringArgument(string value) : base(TypeTagChar)
+        public OscStringArgument(string value) : base(TypeTagChar, value)
         {
             Value = value;
         }
-
-        public OscStringArgument(ReadOnlySpan<byte> bytes, out int bytesRead) :
-            this(OscUtil.ReadString(bytes, out bytesRead))
-        { }
 
         public override int GetByteCount()
         {

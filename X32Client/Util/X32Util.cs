@@ -1,89 +1,14 @@
 ﻿using System;
-using System.Text;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace Suhock.X32.Util
 {
     public static class X32Util
     {
-        private static byte[] ReadBigEndianBytes(byte[] bytes, int startIndex, int length)
-        {
-            byte[] buf = new byte[length];
-            Array.ConstrainedCopy(bytes, startIndex, buf, 0, length);
-
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(buf);
-            }
-
-            return buf;
-        }
-
-        public static float ConvertFloatToFaderLevel(float value)
-        {
-            if (value >= 0.5f)
-            {
-                return 40.0f * Math.Min(value, 1.0f) - 30.0f;
-            }
-            else if (value >= 0.25f)
-            {
-                return 80.0f * value - 50.0f;
-            }
-            else if (value >= 0.0625f)
-            {
-                return 160.0f * value - 70.0f;
-            }
-            else if (value > 0.0f)
-            {
-                return 480.0f * value - 90.0f;
-            }
-            else
-            {
-                return float.NegativeInfinity;
-            }
-        }
-
-        public static float ConvertFaderLevelToFloat(float db)
-        {
-            float value;
-
-            if (db >= -10.0f)
-            {
-                value = (Math.Min(db, 10.0f) + 30.0f) / 40.0f;
-            }
-            else if (db >= -30.0f)
-            {
-                value = (db + 50.0f) / 80.0f;
-            }
-            else if (db >= -60.0f)
-            {
-                value = (db + 70.0f) / 160.0f;
-            }
-            else if (db > -90.0f)
-            {
-                value = (db + 90.0f) / 480.0f;
-            }
-            else
-            {
-                value = 0.0f;
-            }
-
-            return (float)Math.Floor(value * 1023.5f) / 1023.0f;
-        }
-
-        public static float ConvertFloatToLinear(float value, float rangeMin, float rangeMax, float step)
-        {
-            return value * (rangeMax - rangeMin) + rangeMin;
-        }
-
-        public static float ConvertLinearToFloat(float value, float rangeMin, float rangeMax, float step)
-        {
-            return (Math.Max(Math.Min(value, rangeMax), rangeMin) - rangeMin) / (rangeMax - rangeMin);
-        }
-
         public static float ConvertFloatToHeadampGain(float value)
         {
-            return ConvertFloatToLinear(value, -12.0f, 60.0f, 0.5f);
+            return FloatConversions.AlignEncoded(FloatConversions.EncodedToLinear(value, -12.0f, 60.0f), 145);
         }
 
         public static string ConvertUserInIndexToString(int index)
@@ -167,5 +92,60 @@ namespace Suhock.X32.Util
                 return -1;
             }
         }
+
+        public static HashSet<int> ConvertBitSetToSet(int bitSet)
+        {
+            int index = 0;
+            HashSet<int> result = new HashSet<int>();
+
+            while (bitSet > 0)
+            {
+                ++index;
+
+                if ((bitSet & 1) == 1)
+                {
+                    result.Add(index);
+                }
+
+                bitSet >>= 1;
+            }
+
+            return result;
+        }
+
+        public static int ConvertSetToBitSet(ICollection<int> set, int maxValue)
+        {
+            if (set == null)
+            {
+                throw new ArgumentNullException(nameof(set));
+            }
+
+            int result = 0;
+
+            foreach (int value in set)
+            {
+                if (value < 1 || value > maxValue)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(set), value, "Must be between 1 and " + maxValue);
+                }
+
+                result |= 1 << (value - 1);
+            }
+
+            return result;
+        }
+
+        public static int SetBitSetIndexOn(int bitSet, int value, int maxValue, bool on)
+        {
+            if (value < 1 || value > maxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), "Must be between 1 and " + maxValue);
+            }
+
+            int mask = 1 << (value - 1);
+
+            return on ? (bitSet | mask) : (bitSet & ~mask);
+        }
+
     }
 }

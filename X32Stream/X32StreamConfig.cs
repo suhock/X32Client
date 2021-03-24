@@ -1,22 +1,24 @@
-﻿namespace Suhock.X32.Stream
+﻿using System.Collections.Generic;
+
+namespace Suhock.X32.Stream
 {
-    internal class X32StreamConfig
+    public class X32StreamConfig
     {
-        public X32Profile Source { get; set; } = new X32Profile();
+        public X32ClientProfile Source { get; set; } = new X32ClientProfile();
 
-        public X32Profile Destination { get; set; } = new X32Profile();
+        public X32ClientProfile Destination { get; set; } = new X32ClientProfile();
 
-        public string[] Patterns { get; set; }
+        public List<string> Patterns { get; } = new List<string>();
 
-        public string[] Init { get; set; }
+        public List<string> Init { get; } = new List<string>();
+    }
 
-        public class X32Profile
-        {
-            public const int DefaultPort = 10023;
+    public class X32ClientProfile
+    {
+        public const int DefaultPort = 10023;
 
-            public string Address { get; set; }
+        public string Address { get; set; }
 
-            public int Port { get; set; } = DefaultPort;
-        }
+        public int Port { get; set; } = DefaultPort;
     }
 }

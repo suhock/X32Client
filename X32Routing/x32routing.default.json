@@ -3,26 +3,35 @@
 	"Port": 10023,
 	"CredentialsFilename": "credentials.json",
 	"SpreadsheetId": "1v0DlxL7jHtpwv3g6rHp3eVplNaFb57VjTOAjEzloxfs",
-	"SpreadsheetRange": "Channels!A1:F",
+	"SpreadsheetRange": "Channels!A1:G",
 	"ConsoleName": "M32",
 	"Groups": [
 		{
 			"Name": "Vox",
 			"Type": "Bus",
 			"Id": "01",
-			"Color": 2
+			"Color": 2,
+			"MuteGroups": [ 1 ]
 		},
 		{
 			"Name": "Inst",
 			"Type": "DCA",
 			"Id": "02",
-			"Color": 1
+			"Color": 1,
+			"MuteGroups": [ 1 ]
+		},
+		{
+			"Name": "Keys",
+			"Type": "DCA",
+			"Id": "02",
+			"Color": 6
 		},
 		{
 			"Name": "Drums",
 			"Type": "Bus",
 			"Id": "03",
-			"Color": 4
+			"Color": 4,
+			"MuteGroups": [ 1 ]
 		},
 		{
 			"Name": "Other",
