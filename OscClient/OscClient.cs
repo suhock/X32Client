@@ -58,7 +58,7 @@ namespace Suhock.Osc
                 throw new ArgumentNullException(nameof(msg));
             }
 
-            Connection.Send(msg.GetBytes());
+            Connection.Send(msg.GetPacketBytes());
         }
 
         public async Task SendAsync(OscMessage msg)
@@ -70,7 +70,7 @@ namespace Suhock.Osc
                 throw new ArgumentNullException(nameof(msg));
             }
 
-            await Connection.SendAsync(msg.GetBytes());
+            await Connection.SendAsync(msg.GetPacketBytes());
         }
     }
 }

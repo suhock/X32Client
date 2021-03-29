@@ -1,14 +1,14 @@
 ﻿using System;
 
-namespace Suhock.Osc
+namespace Suhock.Osc.Arguments
 {
-    public class OscFloatArgument : OscArgument<float>
+    public class OscIntArgument : OscArgument<int>
     {
-        public const byte TypeTagChar = (byte)'f';
+        public const byte TypeTagChar = (byte)'i';
 
-        public OscFloatArgument() : this(0.0f) { }
+        public OscIntArgument() : this(0) { }
 
-        public OscFloatArgument(float value) : base(TypeTagChar, value)
+        public OscIntArgument(int value) : base(TypeTagChar, value)
         {
             Value = value;
         }
@@ -28,7 +28,7 @@ namespace Suhock.Osc
 
         public override int WriteBytes(Span<byte> bytes)
         {
-            return OscUtil.WriteFloat(bytes, Value);
+            return OscUtil.WriteInt(bytes, Value);
         }
     }
 }

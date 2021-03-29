@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Suhock.Osc;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Suhock.Osc.Tests
 {
@@ -22,10 +23,10 @@ namespace Suhock.Osc.Tests
 
             var msg = factory.Create("/address", 1, 1.0f, "a", new byte[] { 1, 2 });
             Assert.AreEqual("/address", msg.Address);
-            Assert.AreEqual(1, msg.GetValue<int>(0));
-            Assert.AreEqual(1.0f, msg.GetValue<float>(1));
-            Assert.AreEqual("a", msg.GetValue<string>(2));
-            CollectionAssert.AreEqual(new byte[] { 1, 2 }, msg.GetValue<byte[]>(3));
+            Assert.AreEqual(1, msg.GetArgumentValue<int>(0));
+            Assert.AreEqual(1.0f, msg.GetArgumentValue<float>(1));
+            Assert.AreEqual("a", msg.GetArgumentValue<string>(2));
+            CollectionAssert.AreEqual(new byte[] { 1, 2 }, msg.GetArgumentValue<byte[]>(3));
         }
 
         [TestMethod()]
@@ -33,14 +34,25 @@ namespace Suhock.Osc.Tests
         {
             var factory = new OscMessageFactory(new OscArgumentFactory());
 
-            var msg = factory.Create(factory.Create("/address", 1, 1.0f, "a", new byte[] { 1, 2 }).GetBytes(),
+            var msg = factory.Create(factory.Create("/address", 1, 1.0f, "a", new byte[] { 1, 2 }).GetPacketBytes(),
                 out int length);
             Assert.AreEqual("/address", msg.Address);
-            Assert.AreEqual(1, msg.GetValue<int>(0));
-            Assert.AreEqual(1.0f, msg.GetValue<float>(1));
-            Assert.AreEqual("a", msg.GetValue<string>(2));
-            CollectionAssert.AreEqual(new byte[] { 1, 2 }, msg.GetValue<byte[]>(3));
-            Assert.AreEqual(msg.GetByteCount(), length);
+            Assert.AreEqual(1, msg.GetArgumentValue<int>(0));
+            Assert.AreEqual(1.0f, msg.GetArgumentValue<float>(1));
+            Assert.AreEqual("a", msg.GetArgumentValue<string>(2));
+            CollectionAssert.AreEqual(new byte[] { 1, 2 }, msg.GetArgumentValue<byte[]>(3));
+            Assert.AreEqual(msg.GetPacketLength(), length);
+        }
+
+        [TestMethod()]
+        public void CreateTest3()
+        {
+            var factory = new OscMessageFactory(new OscArgumentFactory());
+
+            var msg = factory.Create(System.Text.Encoding.ASCII.GetBytes("/address\0\0\0\0abc"), out int length);
+            Assert.AreEqual("/address", msg.Address);
+            Assert.AreEqual(0, msg.Arguments.Count);
+            Assert.AreEqual(12, length);
         }
     }
 }

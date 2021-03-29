@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Suhock.Osc
+namespace Suhock.Osc.Arguments
 {
     public class OscStringArgument : OscArgument<string>
     {

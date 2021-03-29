@@ -71,7 +71,7 @@ namespace Suhock.X32.Nodes
 
         public T GetValue<T>(string path)
         {
-            return Client.Query(Client.MessageFactory.Create(AddressPrefix + path)).GetValue<T>(0);
+            return Client.Query(Client.MessageFactory.Create(AddressPrefix + path)).GetArgumentValue<T>(0);
         }
 
         public bool GetBoolValue(string path)

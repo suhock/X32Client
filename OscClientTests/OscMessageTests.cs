@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Suhock.Osc.Arguments;
 using System.Collections.Generic;
 
 namespace Suhock.Osc.Tests
@@ -56,89 +57,67 @@ namespace Suhock.Osc.Tests
             Assert.AreEqual(1, new OscMessage("/address", new IOscArgument[] 
             {
                 new OscIntArgument(1)
-            }).GetValue<int>(0));
+            }).GetArgumentValue<int>(0));
             Assert.AreEqual(1.0f, new OscMessage("/address", new IOscArgument[]
             {
                 new OscFloatArgument(1.0f)
-            }).GetValue<float>(0));
+            }).GetArgumentValue<float>(0));
             Assert.AreEqual("a", new OscMessage("/address", new IOscArgument[]
             {
                 new OscIntArgument(1),
                 new OscStringArgument("a")
-            }).GetValue<string>(1));
+            }).GetArgumentValue<string>(1));
             CollectionAssert.AreEqual(new byte[] { 1 }, new OscMessage("/address", new IOscArgument[]
             {
                 new OscBlobArgument(new byte[] { 1 })
-            }).GetValue<byte[]>(0));
+            }).GetArgumentValue<byte[]>(0));
         }
 
         [TestMethod()]
         public void WriteBytesTest()
         {
             byte[] bytes = new byte[16];
-            Assert.AreEqual(16, new OscMessage("/address").WriteBytes(bytes));
+            Assert.AreEqual(16, new OscMessage("/address").WritePacket(bytes));
             CollectionAssert.AreEqual(
-                new byte[] {
-                    (byte)'/', (byte)'a', (byte)'d', (byte)'d',
-                    (byte)'r', (byte)'e', (byte)'s', (byte)'s',
-                    0, 0, 0, 0,
-                    (byte)',', 0, 0, 0,
-                }, bytes);
+                System.Text.Encoding.ASCII.GetBytes("/address\0\0\0\0,\0\0\0"),
+                bytes);
 
             bytes = new byte[24];
             Assert.AreEqual(24, new OscMessage("/address", new IOscArgument[]
                 {
                     new OscIntArgument(1),
                     new OscStringArgument("a")
-                }).WriteBytes(bytes));
+                }).WritePacket(bytes));
             CollectionAssert.AreEqual(
-                new byte[] {
-                    (byte)'/', (byte)'a', (byte)'d', (byte)'d',
-                    (byte)'r', (byte)'e', (byte)'s', (byte)'s',
-                    0, 0, 0, 0,
-                    (byte)',', (byte)'i', (byte)'s', 0,
-                    0, 0, 0, 1,
-                    (byte)'a', 0, 0, 0
-                }, bytes);
+                System.Text.Encoding.ASCII.GetBytes("/address\0\0\0\0,is\0\0\0\0\x0001a\0\0\0"),
+                bytes);
         }
 
         [TestMethod()]
         public void GetByteCountTest()
         {
-            Assert.AreEqual(16, new OscMessage("/address").GetByteCount());
+            Assert.AreEqual(16, new OscMessage("/address").GetPacketLength());
             Assert.AreEqual(24, new OscMessage("/address", new IOscArgument[]
             {
                 new OscIntArgument(1),
                 new OscStringArgument("a")
-            }).GetByteCount());
+            }).GetPacketLength());
         }
 
         [TestMethod()]
         public void GetBytesTest()
         {
             CollectionAssert.AreEqual(
-                new byte[] {
-                    (byte)'/', (byte)'a', (byte)'d', (byte)'d',
-                    (byte)'r', (byte)'e', (byte)'s', (byte)'s',
-                    0, 0, 0, 0,
-                    (byte)',', 0, 0, 0,
-                },
-                new OscMessage("/address").GetBytes());
+                System.Text.Encoding.ASCII.GetBytes("/address\0\0\0\0,\0\0\0"),
+                new OscMessage("/address").GetPacketBytes());
 
             CollectionAssert.AreEqual(
-                new byte[] {
-                    (byte)'/', (byte)'a', (byte)'d', (byte)'d',
-                    (byte)'r', (byte)'e', (byte)'s', (byte)'s',
-                    0, 0, 0, 0,
-                    (byte)',', (byte)'i', (byte)'s', 0,
-                    0, 0, 0, 1,
-                    (byte)'a', 0, 0, 0
-                },
+                System.Text.Encoding.ASCII.GetBytes("/address\0\0\0\0,is\0\0\0\0\x0001a\0\0\0"),
                 new OscMessage("/address", new IOscArgument[]
                 {
                     new OscIntArgument(1),
                     new OscStringArgument("a")
-                }).GetBytes());
+                }).GetPacketBytes());
         }
 
         [TestMethod()]

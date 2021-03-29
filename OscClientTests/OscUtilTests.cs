@@ -7,6 +7,42 @@ namespace Suhock.Osc.Tests
     public class OscUtilTests
     {
         [TestMethod()]
+        public void AlignOffsetTest()
+        {
+            Assert.AreEqual(0, OscUtil.AlignOffset(0));
+            Assert.AreEqual(4, OscUtil.AlignOffset(1));
+            Assert.AreEqual(4, OscUtil.AlignOffset(2));
+            Assert.AreEqual(4, OscUtil.AlignOffset(3));
+            Assert.AreEqual(4, OscUtil.AlignOffset(4));
+            Assert.AreEqual(8, OscUtil.AlignOffset(5));
+            Assert.AreEqual(0x7ffffffc, OscUtil.AlignOffset(0x7ffffffb));
+        }
+
+        [TestMethod()]
+        public void ReadByteStringTest()
+        {
+            CollectionAssert.AreEqual(new byte[0] { },
+                OscUtil.ReadByteString(new byte[0], out int length).ToArray());
+            Assert.AreEqual(0, length);
+
+            CollectionAssert.AreEqual(new byte[0] { },
+                OscUtil.ReadByteString(new byte[4] { 0, 0, 0, 0 }, out length).ToArray());
+            Assert.AreEqual(4, length);
+
+            CollectionAssert.AreEqual(new byte[1] { 1 },
+                OscUtil.ReadByteString(new byte[4] { 1, 0, 0, 0 }, out length).ToArray());
+            Assert.AreEqual(4, length);
+
+            CollectionAssert.AreEqual(new byte[3] { 1, 2, 3 },
+                OscUtil.ReadByteString(new byte[4] { 1, 2, 3, 0 }, out length).ToArray());
+            Assert.AreEqual(4, length);
+
+            CollectionAssert.AreEqual(new byte[4] { 1, 2, 3, 4 },
+                OscUtil.ReadByteString(new byte[8] { 1, 2, 3, 4, 0, 0, 0, 0 }, out length).ToArray());
+            Assert.AreEqual(8, length);
+        }
+
+        [TestMethod()]
         public void ReadIntTests()
         {
             Assert.AreEqual(0, OscUtil.ReadInt(new byte[] { 0, 0, 0, 0 }, out int length));
@@ -81,6 +117,105 @@ namespace Suhock.Osc.Tests
             CollectionAssert.AreEqual(new byte[] { 5, 6, 7, 8, 9 },
                 OscUtil.ReadBlob(new byte[] { 0, 0, 0, 5, 5, 6, 7, 8, 9 }, out length).ToArray());
             Assert.AreEqual(9, length);
+        }
+
+        [TestMethod()]
+        public void WriteIntTest()
+        {
+            byte[] buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            int length = OscUtil.WriteInt(buffer, 1);
+            CollectionAssert.AreEqual(new byte[] { 0, 0, 0, 1, 0xff, 0xff, 0xff, 0xff }, buffer);
+            Assert.AreEqual(4, length);
+
+            buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            length = OscUtil.WriteInt(buffer, 0);
+            CollectionAssert.AreEqual(new byte[] { 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff }, buffer);
+            Assert.AreEqual(4, length);
+        }
+
+        [TestMethod()]
+        public void WriteFloatTest()
+        {
+            byte[] buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            int length = OscUtil.WriteFloat(buffer, 1.0f);
+            CollectionAssert.AreEqual(new byte[] { 0x3f, 0x80, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff }, buffer);
+            Assert.AreEqual(4, length);
+
+            buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            length = OscUtil.WriteFloat(buffer, 0.0f);
+            CollectionAssert.AreEqual(new byte[] { 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff }, buffer);
+            Assert.AreEqual(4, length);
+        }
+
+        [TestMethod()]
+        public void WriteByteStringTest1()
+        {
+            byte[] buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            int length = OscUtil.WriteString(buffer, new byte[0]);
+            CollectionAssert.AreEqual(new byte[8] { 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff }, buffer);
+            Assert.AreEqual(4, length);
+
+            buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            length = OscUtil.WriteString(buffer, new byte[1] { (byte)'a' });
+            CollectionAssert.AreEqual(new byte[8] { (byte)'a', 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff }, buffer);
+            Assert.AreEqual(4, length);
+
+            buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            length = OscUtil.WriteString(buffer, new byte[4] { (byte)'a', (byte)'b', (byte)'c', (byte)'d' });
+            CollectionAssert.AreEqual(
+                new byte[8] { (byte)'a', (byte)'b', (byte)'c', (byte)'d', 0x00, 0x00, 0x00, 0x00 },
+                buffer);
+            Assert.AreEqual(8, length);
+        }
+
+        [TestMethod()]
+        public void WriteByteStringTest2()
+        {
+            byte[] buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            int length = OscUtil.WriteString(buffer, "");
+            CollectionAssert.AreEqual(new byte[8] { 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff }, buffer);
+            Assert.AreEqual(4, length);
+
+            buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            length = OscUtil.WriteString(buffer, "a");
+            CollectionAssert.AreEqual(new byte[8] { (byte)'a', 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff }, buffer);
+            Assert.AreEqual(4, length);
+
+            buffer = new byte[8] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            length = OscUtil.WriteString(buffer, "abcd");
+            CollectionAssert.AreEqual(
+                new byte[8] { (byte)'a', (byte)'b', (byte)'c', (byte)'d', 0x00, 0x00, 0x00, 0x00 },
+                buffer);
+            Assert.AreEqual(8, length);
+        }
+
+        [TestMethod()]
+        public void WriteByteBlob()
+        {
+            byte[] buffer = new byte[12] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            int length = OscUtil.WriteBlob(buffer, new byte[0]);
+            CollectionAssert.AreEqual(
+                new byte[12] { 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff },
+                buffer);
+            Assert.AreEqual(4, length);
+
+            buffer = new byte[12] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            length = OscUtil.WriteBlob(buffer, new byte[1] { (byte)'a' });
+            CollectionAssert.AreEqual(
+                new byte[12] { 0x00, 0x00, 0x00, 0x01, (byte)'a', 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff },
+                buffer);
+            Assert.AreEqual(8, length);
+
+            buffer = new byte[12] { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+            length = OscUtil.WriteBlob(buffer, new byte[4] { (byte)'a', (byte)'b', (byte)'c', (byte)'d' });
+            CollectionAssert.AreEqual(
+                new byte[12] {
+                    0x00, 0x00, 0x00, 0x04,
+                    (byte)'a', (byte)'b', (byte)'c', (byte)'d',
+                    0xff, 0xff, 0xff, 0xff
+                },
+                buffer);
+            Assert.AreEqual(8, length);
         }
     }
 }

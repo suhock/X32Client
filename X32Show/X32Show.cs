@@ -80,7 +80,7 @@ namespace Suhock.X32.Show
             {
                 if (freqFader != null && ampFader != null)
                 {
-                    meter += 0.05f + freqFader.GetValue<float>(0) * 0.1f;
+                    meter += 0.05f + freqFader.GetArgumentValue<float>(0) * 0.1f;
 
                     colorOffset++;
 
@@ -93,7 +93,7 @@ namespace Suhock.X32.Show
                         levels[i] = levels[i - 1];
                     }
 
-                    levels[0] = (float)(ampFader.GetValue<float>(0) * Math.Sin(meter * 2 * Math.PI) + 1) / 2;
+                    levels[0] = (float)(ampFader.GetArgumentValue<float>(0) * Math.Sin(meter * 2 * Math.PI) + 1) / 2;
 
                     for (int i = 0; i < 32; i++)
                     {

@@ -1,13 +1,15 @@
-﻿using System;
+﻿using Suhock.Osc.Arguments;
+using System;
 
 namespace Suhock.Osc
 {
     /// <summary>
-    /// Implements an <c>IOscArgumentFactory</c> for working with the four basic OSC argument types specified in the 
-    /// OSC protocol.
+    /// An <see cref="IOscArgumentFactory"/> implementation for working with the four basic OSC argument types
+    /// specified in the OSC protocol.
     /// </summary>
     public class OscArgumentFactory : IOscArgumentFactory
     {
+        /// <inheritdoc/>
         public virtual IOscArgument FromBytes(byte typeTag, ReadOnlySpan<byte> bytes, out int length)
         {
             length = 0;
@@ -22,6 +24,7 @@ namespace Suhock.Osc
             };
         }
 
+        /// <inheritdoc/>
         public virtual IOscArgument FromValue(object value)
         {
             return value switch

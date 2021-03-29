@@ -191,7 +191,7 @@ namespace Suhock.X32
 
         public T GetValue<T>(string address)
         {
-            return Query(MessageFactory.Create(address)).GetValue<T>(0);
+            return Query(MessageFactory.Create(address)).GetArgumentValue<T>(0);
         }
 
         public void SetValue<T>(string address, T value)

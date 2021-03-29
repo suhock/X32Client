@@ -44,7 +44,8 @@ namespace Suhock.Osc
         /// </summary>
         public T Value { get; set; }
 
-        protected OscArgument(byte typeTag, T value) : base(typeTag) {
+        protected OscArgument(byte typeTag, T value) : base(typeTag)
+        {
             Value = value;
         }
 

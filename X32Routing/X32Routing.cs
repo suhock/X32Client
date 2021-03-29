@@ -52,7 +52,7 @@ namespace Suhock.X32.Routing
             foreach (ChannelState channel in channels)
             {
                 OscMessage haMsg = await QueryAsync("/-ha/" + (channel.Id - 1).ToString().PadLeft(2, '0') + "/index").ConfigureAwait(true);
-                int haIndex = haMsg.GetValue<int>(0);
+                int haIndex = haMsg.GetArgumentValue<int>(0);
 
                 if (haIndex > -1)
                 {
@@ -60,9 +60,9 @@ namespace Suhock.X32.Routing
                     {
                         headamps[haIndex] = new HeadampState()
                         {
-                            Index = haMsg.GetValue<int>(0),
-                            Gain = (await QueryAsync("/headamp/" + haIndex.ToString().PadLeft(3, '0') + "/gain").ConfigureAwait(true)).GetValue<float>(0),
-                            Phantom = (await QueryAsync("/headamp/" + haIndex.ToString().PadLeft(3, '0') + "/phantom").ConfigureAwait(true)).GetValue<int>(0)
+                            Index = haMsg.GetArgumentValue<int>(0),
+                            Gain = (await QueryAsync("/headamp/" + haIndex.ToString().PadLeft(3, '0') + "/gain").ConfigureAwait(true)).GetArgumentValue<float>(0),
+                            Phantom = (await QueryAsync("/headamp/" + haIndex.ToString().PadLeft(3, '0') + "/phantom").ConfigureAwait(true)).GetArgumentValue<int>(0)
                         };
                     }
 

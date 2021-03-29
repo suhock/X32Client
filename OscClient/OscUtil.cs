@@ -14,7 +14,7 @@ namespace Suhock.Osc
         /// <returns>The aligned offset</returns>
         public static int AlignOffset(int offset)
         {
-            return (offset + 3) & 0x7ffffffc;
+            return (offset + 3) & ~0x03;
         }
 
         /// <summary>
@@ -22,8 +22,10 @@ namespace Suhock.Osc
         /// encoutered before the end of the span, the value up until the end of the span is returned.
         /// </summary>
         /// <param name="bytes">The span of bytes from which to read</param>
-        /// <param name="length">The number of bytes read</param>
-        /// <returns>The decoded string as a span of bytes</returns>
+        /// <param name="length">The four-byte aligned number of bytes read, including null bytes, or the length of
+        /// <code>bytes</code> if there are no null bytes</param>
+        /// <returns>The span of bytes up to, but not including the first null byte in <code>bytes</code>, or the
+        /// entire <code>bytes</code> span if there are no null bytes</returns>
         public static ReadOnlySpan<byte> ReadByteString(ReadOnlySpan<byte> bytes, out int length)
         {
             if (bytes == null)
@@ -173,7 +175,7 @@ namespace Suhock.Osc
         /// <param name="target">The span of bytes to which to write</param>
         /// <param name="value">The string of bytes to write</param>
         /// <returns>The number of bytes written</returns>
-        public static int WriteByteString(Span<byte> target, ReadOnlySpan<byte> value)
+        public static int WriteString(Span<byte> target, ReadOnlySpan<byte> value)
         {
             if (value == null)
             {

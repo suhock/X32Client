@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Suhock.Osc.Arguments;
 
 namespace Suhock.Osc.Tests
 {
