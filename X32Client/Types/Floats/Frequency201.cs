@@ -1,27 +1,31 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class Frequency201 : Frequency
+namespace Suhock.X32.Types.Floats;
+
+public sealed class Frequency201 : ILogFloat
 {
-    public override float MinUnitValue => 20f;
+    public static float MinUnitValue => 20f;
+    public static float MaxUnitValue => 20000f;
+    public static int Steps => 201;
+    public static string Unit => "Hz";
 
-    public override float MaxUnitValue => 20000f;
+    public static Frequency201 MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static Frequency201 MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public override int Steps => 201;
+    public float EncodedValue { get; }
 
+    private Frequency201(float encodedValue)
+    {
+        EncodedValue = encodedValue;
+    }
 
-    private static Frequency201 _minValue;
+    public static Frequency201 FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    private static Frequency201 _maxValue;
+    public static Frequency201 FromUnitValue(float unitValue) =>
+        new(FloatConversions.LogToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static Frequency201 MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public static Frequency201 FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public static Frequency201 MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    protected Frequency201(): base() { }
-
-    public Frequency201(float unitValue) : base(unitValue) { }
-
-    public Frequency201(int stepValue) : base(stepValue) { }
-
-    public static Frequency201 FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public override string ToString() => this.ToUnitString();
 }

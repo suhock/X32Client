@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class GateRange : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct GateRange : ILinearFloat
 {
-    private static GateRange? _minValue;
+    public static float MinUnitValue => 3f;
+    public static float MaxUnitValue => 60f;
+    public static float StepInterval => 1.0f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "dB";
 
-    private static GateRange? _maxValue;
+    public static GateRange MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static GateRange MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static GateRange MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static GateRange MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private GateRange()
+    private GateRange(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public GateRange(float unitValue) : base(unitValue)
-    {
-    }
+    public static GateRange FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public GateRange(int stepValue) : base(stepValue)
-    {
-    }
+    public static GateRange FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
+    
+    public static GateRange FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public static GateRange FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
-
-    public override float MinUnitValue => 3f;
-
-    public override float MaxUnitValue => 60f;
-
-    public override float StepInterval => 1.0f;
-
-    public override string Unit => "dB";
+    public override string ToString() => this.ToUnitString();
 }

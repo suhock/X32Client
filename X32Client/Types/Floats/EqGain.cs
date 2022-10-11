@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class EqGain : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct EqGain : ILinearFloat
 {
-    private static EqGain? _minValue;
+    public static float MinUnitValue => -15f;
+    public static float MaxUnitValue => 15f;
+    public static float StepInterval => 0.25f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "dB";
 
-    private static EqGain? _maxValue;
+    public static EqGain MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static EqGain MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static EqGain MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static EqGain MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private EqGain()
+    private EqGain(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public EqGain(float unitValue) : base(unitValue)
-    {
-    }
+    public static EqGain FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public EqGain(int stepValue) : base(stepValue)
-    {
-    }
+    public static EqGain FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
+    
+    public static EqGain FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public static EqGain FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
-
-    public override float MinUnitValue => -15f;
-
-    public override float MaxUnitValue => 15f;
-
-    public override float StepInterval => 0.25f;
-
-    public override string Unit => "dB";
+    public override string ToString() => this.ToUnitString();
 }

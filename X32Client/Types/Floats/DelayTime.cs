@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class DelayTime : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct DelayTime : ILinearFloat
 {
-    private static DelayTime? _minValue;
+    public static float MinUnitValue => -0.3f;
+    public static float MaxUnitValue => 500.0f;
+    public static float StepInterval => 0.1f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "ms";
 
-    private static DelayTime? _maxValue;
+    public static DelayTime MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static DelayTime MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static DelayTime MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static DelayTime MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private DelayTime()
+    private DelayTime(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public DelayTime(float unitValue) : base(unitValue)
-    {
-    }
+    public static DelayTime FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public DelayTime(int stepValue) : base(stepValue)
-    {
-    }
+    public static DelayTime FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
+    
+    public static DelayTime FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public static DelayTime FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
-
-    public override float MinUnitValue => -0.3f;
-
-    public override float MaxUnitValue => 500.0f;
-
-    public override float StepInterval => 0.1f;
-
-    public override string Unit => "ms";
+    public override string ToString() => this.ToUnitString();
 }

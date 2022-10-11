@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class KneeValue : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct KneeValue : ILinearFloat
 {
-    private static KneeValue? _minValue;
+    public static float MinUnitValue => 0f;
+    public static float MaxUnitValue => 5f;
+    public static float StepInterval => 1f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "";
 
-    private static KneeValue? _maxValue;
+    public static KneeValue MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static KneeValue MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static KneeValue MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static KneeValue MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private KneeValue()
+    private KneeValue(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public KneeValue(float unitValue) : base(unitValue)
-    {
-    }
+    public static KneeValue FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public KneeValue(int stepValue) : base(stepValue)
-    {
-    }
+    public static KneeValue FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static KneeValue FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static KneeValue FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => 0f;
-
-    public override float MaxUnitValue => 5f;
-
-    public override float StepInterval => 1f;
-
-    public override string Unit => "";
+    public override string ToString() => this.ToUnitString();
 }

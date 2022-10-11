@@ -1,45 +1,31 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class HoldTime : AbstractLogDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct HoldTime : ILogFloat
 {
-    private static HoldTime? _minValue;
+    public static float MinUnitValue => 0.02f;
+    public static float MaxUnitValue => 2000.0f;
+    public static int Steps => 101;
+    public static string Unit => "ms";
+    
+    public static HoldTime MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static HoldTime MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    private static HoldTime? _maxValue;
+    public float EncodedValue { get; }
 
-    public static HoldTime MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
-
-    public static HoldTime MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private HoldTime()
+    private HoldTime(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public HoldTime(float unitValue) : base(unitValue)
-    {
-    }
+    public static HoldTime FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public HoldTime(int stepValue) : base(stepValue)
-    {
-    }
+    public static HoldTime FromUnitValue(float unitValue) =>
+        new(FloatConversions.LogToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static HoldTime FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static HoldTime FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => 0.02f;
-
-    public override float MaxUnitValue => 2000.0f;
-
-    public override int Steps => 101;
-
-    public override string Unit => "ms";
-
-
-    public override string ToNodeString()
-    {
-        return UnitValue switch
-        {
-            < 10.0f => ToFixedDecimalNodeString(2),
-            < 100.0f => ToFixedDecimalNodeString(1),
-            _ => ToFixedDecimalNodeString(0)
-        };
-    }
+    public override string ToString() => this.ToUnitString();
 }

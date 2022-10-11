@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Suhock.Osc;
+﻿namespace Suhock.Osc;
 
 public interface IOscMessageFactory
 {

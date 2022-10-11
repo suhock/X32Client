@@ -1,31 +1,31 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class FaderLevel : AbstractLevelDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct FaderLevel : ILevelFloat
 {
-    public override int Steps => 161;
+    public static float MinUnitValue => float.NegativeInfinity;
+    public static float MaxUnitValue => 10.0f;
+    public static int Steps => 161;
+    public static string Unit => "dB";
 
-    public override string ToNodeString() => (UnitValue >= 0 ? "+" : "") + ToFixedDecimalNodeString(1);
+    public static FaderLevel MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static FaderLevel MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
+    public float EncodedValue { get; }
 
-    private static FaderLevel? _minValue;
-
-    private static FaderLevel? _maxValue;
-
-    public static FaderLevel MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
-
-    public static FaderLevel MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private FaderLevel()
+    private FaderLevel(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public FaderLevel(float unitValue) : base(unitValue)
-    {
-    }
+    public static FaderLevel FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public FaderLevel(int stepValue) : base(stepValue)
-    {
-    }
+    public static FaderLevel FromUnitValue(float unitValue) =>
+        new(FloatConversions.LevelToEncoded(unitValue));
 
-    public static FaderLevel FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static FaderLevel FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
+
+    public override string ToString() => this.ToUnitString();
 }

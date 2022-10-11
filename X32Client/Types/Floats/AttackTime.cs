@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class AttackTime : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct AttackTime : ILinearFloat
 {
-    private static AttackTime? _minValue;
+    public static float MinUnitValue => 0.0f;
+    public static float MaxUnitValue => 120.0f;
+    public static float StepInterval => 1.0f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "ms";
 
-    private static AttackTime? _maxValue;
-    
-    public static AttackTime MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public static AttackTime MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static AttackTime MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static AttackTime MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
+    public float EncodedValue { get; }
 
-    private AttackTime()
+    private AttackTime(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public AttackTime(float unitValue) : base(unitValue)
-    {
-    }
+    public static AttackTime FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public AttackTime(int stepValue) : base(stepValue)
-    {
-    }
+    public static AttackTime FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static AttackTime FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static AttackTime FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => 0.0f;
-
-    public override float MaxUnitValue => 120.0f;
-
-    public override float StepInterval => 1.0f;
-
-    public override string Unit => "ms";
+    public override string ToString() => this.ToUnitString();
 }

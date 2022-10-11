@@ -4,6 +4,16 @@ namespace Suhock.X32.Util;
 
 internal static class FloatConversions
 {
+    public static int EncodedToStep(float encodedValue, int stepCount)
+    {
+        return (int)Math.Round(encodedValue * (stepCount - 1));
+    }
+
+    public static float StepToEncoded(int step, int stepCount)
+    {
+        return (float)step / (stepCount - 1);
+    }
+
     public static float EncodedToLevel(float value)
     {
         return value switch
@@ -37,7 +47,7 @@ internal static class FloatConversions
     {
         return (value - rangeMin) / (rangeMax - rangeMin);
     }
-
+    
     public static float EncodedToLog(float value, float minValue, float maxValue)
     {
         return minValue * (float)Math.Pow(maxValue / minValue, value);

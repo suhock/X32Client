@@ -1,34 +1,34 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class AutoMixWeight : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct AutoMixWeight : ILinearFloat
 {
-    private static AutoMixWeight? _minValue;
+    public static float MinUnitValue => -12f;
+    public static float MaxUnitValue => 12f;
+    public static float StepInterval => 0.5f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "";
 
-    private static AutoMixWeight? _maxValue;
+    public static AutoMixWeight MinValue => FromEncodedValue(IEncodedFloat.MinEncodedValue);
+    public static AutoMixWeight MaxValue => FromEncodedValue(IEncodedFloat.MaxEncodedValue);
 
-    public static AutoMixWeight MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
 
-    public static AutoMixWeight MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
+    public float EncodedValue { get; }
 
-    private AutoMixWeight()
+
+    private AutoMixWeight(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public AutoMixWeight(float unitValue) : base(unitValue)
-    {
-    }
+    public static AutoMixWeight FromEncodedValue(float encodedValue) => new AutoMixWeight(encodedValue);
 
-    public AutoMixWeight(int stepValue) : base(stepValue)
-    {
-    }
+    public static AutoMixWeight FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static AutoMixWeight FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static AutoMixWeight FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => -12f;
-
-    public override float MaxUnitValue => 12f;
-
-    public override float StepInterval => 0.5f;
-
-    public override string Unit => "";
+    public override string ToString() => this.ToUnitString();
 }

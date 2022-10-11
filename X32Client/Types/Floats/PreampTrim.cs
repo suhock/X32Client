@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class PreampTrim : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct PreampTrim : ILinearFloat
 {
-    private static PreampTrim? _minValue;
+    public static float MinUnitValue => -18f;
+    public static float MaxUnitValue => 18f;
+    public static float StepInterval => 0.25f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "dB";
 
-    private static PreampTrim? _maxValue;
+    public static PreampTrim MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static PreampTrim MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static PreampTrim MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static PreampTrim MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private PreampTrim()
+    private PreampTrim(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public PreampTrim(float unitValue) : base(unitValue)
-    {
-    }
+    public static PreampTrim FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public PreampTrim(int stepValue) : base(stepValue)
-    {
-    }
+    public static PreampTrim FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static PreampTrim FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static PreampTrim FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => -18f;
-
-    public override float MaxUnitValue => 18f;
-
-    public override float StepInterval => 0.25f;
-
-    public override string Unit => "dB";
+    public override string ToString() => this.ToUnitString();
 }

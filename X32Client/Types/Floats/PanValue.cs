@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class PanValue : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct PanValue : ILinearFloat
 {
-    private static PanValue? _minValue;
+    public static float MinUnitValue => -100f;
+    public static float MaxUnitValue => 100f;
+    public static float StepInterval => 2f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "%";
 
-    private static PanValue? _maxValue;
+    public static PanValue MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static PanValue MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static PanValue MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static PanValue MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private PanValue()
+    private PanValue(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public PanValue(float unitValue) : base(unitValue)
-    {
-    }
+    public static PanValue FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public PanValue(int stepValue) : base(stepValue)
-    {
-    }
+    public static PanValue FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static PanValue FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static PanValue FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => -100f;
-
-    public override float MaxUnitValue => 100f;
-
-    public override float StepInterval => 2f;
-
-    public override string Unit => "%";
+    public override string ToString() => this.ToUnitString();
 }

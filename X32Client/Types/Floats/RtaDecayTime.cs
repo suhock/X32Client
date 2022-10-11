@@ -1,36 +1,31 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class RtaDecayTime : AbstractLogDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct RtaDecayTime : ILogFloat
 {
-    private static RtaDecayTime? _minValue;
+    public static float MinUnitValue => 0.25f;
+    public static float MaxUnitValue => 16.0f;
+    public static int Steps => 19;
+    public static string Unit => "s";
 
-    private static RtaDecayTime? _maxValue;
+    public static RtaDecayTime MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static RtaDecayTime MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static RtaDecayTime MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static RtaDecayTime MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private RtaDecayTime()
+    private RtaDecayTime(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public RtaDecayTime(float unitValue) : base(unitValue)
-    {
-    }
+    public static RtaDecayTime FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public RtaDecayTime(int stepValue) : base(stepValue)
-    {
-    }
+    public static RtaDecayTime FromUnitValue(float unitValue) =>
+        new(FloatConversions.LogToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static RtaDecayTime FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static RtaDecayTime FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => 0.25f;
-
-    public override float MaxUnitValue => 16.0f;
-
-    public override int Steps => 19;
-
-    public override string Unit => "s";
-
-    public override string ToNodeString() => ToFixedDecimalNodeString(2);
+    public override string ToString() => this.ToUnitString();
 }

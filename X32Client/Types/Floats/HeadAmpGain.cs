@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class HeadAmpGain : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct HeadAmpGain : ILinearFloat
 {
-    private static HeadAmpGain? _minValue;
+    public static float MinUnitValue => -12f;
+    public static float MaxUnitValue => 60f;
+    public static float StepInterval => 0.5f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "dB";
 
-    private static HeadAmpGain? _maxValue;
+    public static HeadAmpGain MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static HeadAmpGain MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static HeadAmpGain MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static HeadAmpGain MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private HeadAmpGain()
+    private HeadAmpGain(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public HeadAmpGain(float unitValue) : base(unitValue)
-    {
-    }
+    public static HeadAmpGain FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public HeadAmpGain(int stepValue) : base(stepValue)
-    {
-    }
+    public static HeadAmpGain FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static HeadAmpGain FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static HeadAmpGain FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => -12f;
-
-    public override float MaxUnitValue => 60f;
-
-    public override float StepInterval => 0.5f;
-
-    public override string Unit => "dB";
+    public override string ToString() => this.ToUnitString();
 }

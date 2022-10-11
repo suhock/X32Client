@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class GateThreshold : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct GateThreshold : ILinearFloat
 {
-    private static GateThreshold? _minValue;
+    public static float MinUnitValue => -80.0f;
+    public static float MaxUnitValue => 0.0f;
+    public static float StepInterval => 0.5f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "dB";
 
-    private static GateThreshold? _maxValue;
+    public static GateThreshold MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static GateThreshold MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static GateThreshold MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static GateThreshold MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private GateThreshold()
+    private GateThreshold(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public GateThreshold(float unitValue) : base(unitValue)
-    {
-    }
+    public static GateThreshold FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public GateThreshold(int stepValue) : base(stepValue)
-    {
-    }
+    public static GateThreshold FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static GateThreshold FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static GateThreshold FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => -80.0f;
-
-    public override float MaxUnitValue => 0.0f;
-
-    public override float StepInterval => 0.5f;
-
-    public override string Unit => "dB";
+    public override string ToString() => this.ToUnitString();
 }

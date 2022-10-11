@@ -2,7 +2,6 @@
 using Suhock.X32.Types.Floats;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Suhock.Osc;
 
@@ -55,9 +54,9 @@ public abstract class AbstractBaseNode
     {
         value = value switch
         {
-            AbstractSteppedDecimal f => f.EncodedValue,
-            BitSet set => set.Bits,
             bool b => b ? 1 : 0,
+            IEncodedFloat f => f.EncodedValue,
+            BitSet set => set.Bits,
             Enum e => e.ToString(),
             _ => value
         };

@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class MakeupGainValue : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct MakeupGainValue : ILinearFloat
 {
-    private static MakeupGainValue? _minValue;
+    public static float MinUnitValue => 0f;
+    public static float MaxUnitValue => 24f;
+    public static float StepInterval => 0.5f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "dB";
 
-    private static MakeupGainValue? _maxValue;
+    public static MakeupGainValue MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static MakeupGainValue MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static MakeupGainValue MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static MakeupGainValue MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private MakeupGainValue()
+    private MakeupGainValue(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public MakeupGainValue(float unitValue) : base(unitValue)
-    {
-    }
+    public static MakeupGainValue FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public MakeupGainValue(int stepValue) : base(stepValue)
-    {
-    }
+    public static MakeupGainValue FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static MakeupGainValue FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static MakeupGainValue FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => 0f;
-
-    public override float MaxUnitValue => 24f;
-
-    public override float StepInterval => 0.5f;
-
-    public override string Unit => "dB";
+    public override string ToString() => this.ToUnitString();
 }

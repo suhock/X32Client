@@ -1,34 +1,32 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class MixPercentage : AbstractLinearDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct MixPercentage : ILinearFloat
 {
-    private static MixPercentage? _minValue;
+    public static float MinUnitValue => 0f;
+    public static float MaxUnitValue => 100f;
+    public static float StepInterval => 5f;
+    public static int Steps => ILinearFloat.StepsFromInterval(StepInterval, MinUnitValue, MaxUnitValue);
+    public static string Unit => "%";
 
-    private static MixPercentage? _maxValue;
+    public static MixPercentage MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static MixPercentage MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    public static MixPercentage MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public float EncodedValue { get; }
 
-    public static MixPercentage MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private MixPercentage()
+    private MixPercentage(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public MixPercentage(float unitValue) : base(unitValue)
-    {
-    }
+    public static MixPercentage FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public MixPercentage(int stepValue) : base(stepValue)
-    {
-    }
+    public static MixPercentage FromUnitValue(float unitValue) =>
+        new(FloatConversions.LinearToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static MixPercentage FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static MixPercentage FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => 0f;
-
-    public override float MaxUnitValue => 100f;
-
-    public override float StepInterval => 5f;
-
-    public override string Unit => "%";
+    public override string ToString() => this.ToUnitString();
 }

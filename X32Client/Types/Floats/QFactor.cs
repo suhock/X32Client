@@ -1,39 +1,31 @@
-﻿namespace Suhock.X32.Types.Floats;
+﻿using Suhock.X32.Util;
 
-public sealed class QFactor : AbstractLogDecimal
+namespace Suhock.X32.Types.Floats;
+
+public readonly struct QFactor : ILogFloat
 {
-    private static QFactor? _minValue;
+    public static float MinUnitValue => 10;
+    public static float MaxUnitValue => 0.3f;
+    public static int Steps => 72;
+    public static string Unit => "";
+    
+    public static QFactor MinValue => new(IEncodedFloat.MinEncodedValue);
+    public static QFactor MaxValue => new(IEncodedFloat.MaxEncodedValue);
 
-    private static QFactor? _maxValue;
+    public float EncodedValue { get; }
 
-    public static QFactor MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
-
-    public static QFactor MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-    private QFactor()
+    private QFactor(float encodedValue)
     {
+        EncodedValue = encodedValue;
     }
 
-    public QFactor(float unitValue) : base(unitValue)
-    {
-    }
+    public static QFactor FromEncodedValue(float encodedValue) => new(encodedValue);
 
-    public QFactor(int stepValue) : base(stepValue)
-    {
-    }
+    public static QFactor FromUnitValue(float unitValue) =>
+        new(FloatConversions.LogToEncoded(unitValue, MinUnitValue, MaxUnitValue));
 
-    public static QFactor FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
+    public static QFactor FromStepValue(int stepValue) =>
+        new(FloatConversions.StepToEncoded(stepValue, Steps));
 
-    public override float MinUnitValue => 10;
-
-    public override float MaxUnitValue => 0.3f;
-
-    public override int Steps => 72;
-
-    public override string Unit => "";
-
-    public override string ToNodeString()
-    {
-        return ToFixedDecimalNodeString(1);
-    }
+    public override string ToString() => this.ToUnitString();
 }
