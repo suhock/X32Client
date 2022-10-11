@@ -1,19 +1,17 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Suhock.Osc
+namespace Suhock.Osc;
+
+public interface IOscConnection
 {
-    public interface IOscConnection
-    {
-        public byte[] Receive();
+    public byte[] Receive();
 
-        public Task<byte[]> ReceiveAsync();
+    public Task<byte[]> ReceiveAsync(CancellationToken cancellationToken);
 
-        public void Send(byte[] data) => Send(data, data.Length);
+    public void Send(ReadOnlySpan<byte> data);
 
-        public void Send(byte[] data, int bytes);
+    public Task SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken);
 
-        public Task SendAsync(byte[] data) => SendAsync(data, data.Length);
-
-        public Task SendAsync(byte[] data, int bytes);
-    }
 }

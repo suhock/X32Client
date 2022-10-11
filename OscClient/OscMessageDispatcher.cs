@@ -1,67 +1,83 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace Suhock.Osc
+namespace Suhock.Osc;
+
+public sealed class OscMessageDispatcher
 {
-    public class OscMessageDispatcher
+    private readonly IOscClient _client;
+
+    private Task? _task;
+
+    public event EventHandler<OscMessage>? MessageSent;
+
+    public event EventHandler<OscMessage>? MessageReceived;
+
+    public OscMessageDispatcher(IOscClient client)
     {
-        private Task _task = null;
-        
-        public OscMessageDispatcher(OscClient client)
+        _client = client;
+    }
+
+    public bool IsRunning => _task is { IsCompleted: false };
+
+    public void Start() => Start(CancellationToken.None);
+    
+    public void Start(CancellationToken cancellationToken)
+    {
+        ThrowIfRunning();
+
+        _task = new Task(ReceiveLoop, TaskCreationOptions.LongRunning);
+        _task.Start();
+
+        void ReceiveLoop()
         {
-            Client = client;
-        }
-
-        public event EventHandler<OscMessage> MessageSent;
-
-        public event EventHandler<OscMessage> MessageReceived;
-
-        public OscClient Client { get; }
-
-        public bool IsRunning { get => _task != null && !_task.IsCompleted; }
-
-        public void Run()
-        {
-            if (IsRunning)
+            using (_task)
             {
-                throw new InvalidOperationException("Already running");
-            }
-
-            _task = new Task(() =>
-            {
-                using (_task)
+                while (true)
                 {
-                    while (true)
+                    if (cancellationToken.IsCancellationRequested)
                     {
-                        OscMessage msg = Client.Receive();
-                        MessageReceived?.Invoke(this, msg);
+                        break;
                     }
+
+                    var msg = _client.Receive();
+                    MessageReceived?.Invoke(this, msg);
                 }
-            }, TaskCreationOptions.LongRunning);
-
-            _task.Start();
-        }
-
-        public void Send(OscMessage msg)
-        {
-            if (!IsRunning)
-            {
-                throw new InvalidOperationException("Not running");
             }
-
-            MessageSent?.Invoke(this, msg);
-            Client.Send(msg);
         }
+    }
 
-        public Task SendAsync(OscMessage msg)
+    public void Send(OscMessage msg)
+    {
+        ThrowIfNotRunning();
+        MessageSent?.Invoke(this, msg);
+        _client.Send(msg);
+    }
+
+    public Task SendAsync(OscMessage msg) => SendAsync(msg, CancellationToken.None);
+
+    public Task SendAsync(OscMessage msg, CancellationToken cancellationToken)
+    {
+        ThrowIfNotRunning();
+        MessageSent?.Invoke(this, msg);
+        
+        return _client.SendAsync(msg, cancellationToken);
+    }
+
+    private void ThrowIfRunning()
+    {
+        if (IsRunning)
         {
-            if (!IsRunning)
-            {
-                throw new InvalidOperationException("Not running");
-            }
+            throw new InvalidOperationException("Already running");
+        }
+    }
 
-            MessageSent?.Invoke(this, msg);
-            return Client.SendAsync(msg);
+    private void ThrowIfNotRunning()
+    {
+        if (!IsRunning)
+        {
+            throw new InvalidOperationException("Not running");
         }
     }
 }

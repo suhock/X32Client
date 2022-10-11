@@ -1,39 +1,40 @@
 ﻿using System;
 
-namespace Suhock.Osc.Arguments
+namespace Suhock.Osc.Arguments;
+
+public sealed class OscStringArgument : OscArgument<string>
 {
-    public class OscStringArgument : OscArgument<string>
+    public const byte TypeTagByte = (byte)'s';
+
+    public OscStringArgument() : this("") { }
+
+    public OscStringArgument(string value) : base(value)
     {
-        public const byte TypeTagChar = (byte)'s';
+        Value = value;
+    }
 
-        public OscStringArgument() : this("") { }
+    public override byte TypeTag => TypeTagByte;
 
-        public OscStringArgument(string value) : base(TypeTagChar, value)
-        {
-            Value = value;
-        }
+    public override int GetByteCount()
+    {
+        return OscUtil.AlignOffset(Value.Length + 1);
+    }
 
-        public override int GetByteCount()
-        {
-            return OscUtil.AlignOffset(Value.Length + 1);
-        }
+    public override byte[] GetBytes()
+    {
+        var bytes = new byte[GetByteCount()];
+        WriteBytes(bytes);
 
-        public override byte[] GetBytes()
-        {
-            byte[] bytes = new byte[GetByteCount()];
-            WriteBytes(bytes);
+        return bytes;
+    }
 
-            return bytes;
-        }
+    public override int WriteBytes(Span<byte> target)
+    {
+        return OscUtil.WriteString(target, Value);
+    }
 
-        public override int WriteBytes(Span<byte> bytes)
-        {
-            return OscUtil.WriteString(bytes, Value);
-        }
-
-        public override string ToString()
-        {
-            return '"' + Value + '"';
-        }
+    public override string ToString()
+    {
+        return '"' + Value + '"';
     }
 }

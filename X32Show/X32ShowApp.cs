@@ -10,15 +10,15 @@ namespace Suhock.X32.Show
 
         private static async Task Main(string[] args)
         {
-            string configFilename = args.Length > 0 ? args[0] : DefaultConfigFilename;
+            var configFilename = args.Length > 0 ? args[0] : DefaultConfigFilename;
             X32ShowConfig config;
 
-            using (FileStream fs = File.OpenRead(configFilename))
+            using (var fs = File.OpenRead(configFilename))
             {
                 config = await JsonSerializer.DeserializeAsync<X32ShowConfig>(fs);
             }
 
-            using X32Show show = new X32Show(config);
+            using var show = new X32Show(config);
             await show.Run().ConfigureAwait(true);
         }
     }

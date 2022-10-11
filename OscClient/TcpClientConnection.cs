@@ -1,69 +1,74 @@
 ﻿using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
+using System;
 
-namespace Suhock.Osc
+namespace Suhock.Osc;
+
+public sealed class TcpClientConnection : IOscConnection
 {
-    public class TcpClientConnection : IOscConnection
+    private readonly TcpClient _client;
+
+    public TcpClientConnection(TcpClient client)
     {
-        public TcpClient Client { get; }
+        _client = client;
+    }
 
-        public TcpClientConnection(TcpClient client)
+    public byte[] Receive()
+    {
+        var stream = _client.GetStream();
+        var sizeBytes = new byte[4];
+
+        if (stream.Read(sizeBytes, 0, 4) < 4)
         {
-            Client = client;
+            throw new Exception();
         }
 
-        public byte[] Receive()
+        var packetLength = OscUtil.ReadInt(sizeBytes, out _);
+        var bytesRead = 0;
+        var buffer = new byte[packetLength];
+
+        while (bytesRead < packetLength)
         {
-            NetworkStream stream = Client.GetStream();
-            byte[] sizeBytes = new byte[4];
-
-            if (stream.Read(sizeBytes, 0, 4) < 4)
-            {
-                throw new System.Exception();
-            }
-
-            int packetLength = OscUtil.ReadInt(sizeBytes, out _);
-            int bytesRead = 0;
-            byte[] buffer = new byte[packetLength];
-
-            while (bytesRead < packetLength)
-            {
-                bytesRead += stream.Read(buffer, bytesRead, packetLength - bytesRead);
-            }
-
-            return buffer;
+            bytesRead += stream.Read(buffer, bytesRead, packetLength - bytesRead);
         }
 
-        public async Task<byte[]> ReceiveAsync()
+        return buffer;
+    }
+
+    public async Task<byte[]> ReceiveAsync(CancellationToken cancellationToken)
+    {
+        var stream = _client.GetStream();
+        var sizeBytes = new byte[4];
+
+        var headerBytesRead = await stream.ReadAsync(sizeBytes.AsMemory(0, 4), cancellationToken);
+
+        if (headerBytesRead < 4)
         {
-            NetworkStream stream = Client.GetStream();
-            byte[] sizeBytes = new byte[4];
-
-            if (await stream.ReadAsync(sizeBytes, 0, 4) < 4)
-            {
-                throw new System.Exception();
-            }
-
-            int packetLength = OscUtil.ReadInt(sizeBytes, out _);
-            int bytesRead = 0;
-            byte[] buffer = new byte[packetLength];
-
-            while (bytesRead < packetLength)
-            {
-                bytesRead += await stream.ReadAsync(buffer, bytesRead, packetLength - bytesRead);
-            }
-
-            return buffer;
+            throw new Exception();
         }
 
-        public void Send(byte[] data, int bytes)
+        var packetLength = OscUtil.ReadInt(sizeBytes, out _);
+        var bytesReadToBuffer = 0;
+        var buffer = new byte[packetLength];
+
+        while (bytesReadToBuffer < packetLength)
         {
-            Client.GetStream().Write(data, 0, bytes);
+            bytesReadToBuffer += await stream.ReadAsync(
+                buffer.AsMemory(bytesReadToBuffer, packetLength - bytesReadToBuffer),
+                cancellationToken);
         }
 
-        public Task SendAsync(byte[] data, int bytes)
-        {
-            return Client.GetStream().WriteAsync(data, 0, bytes);
-        }
+        return buffer;
+    }
+
+    public void Send(ReadOnlySpan<byte> data)
+    {
+        _client.GetStream().Write(data);
+    }
+
+    public async Task SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    {
+        await _client.GetStream().WriteAsync(data, cancellationToken);
     }
 }

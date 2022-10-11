@@ -1,31 +1,30 @@
 ﻿using System;
 
-namespace Suhock.X32.Types.Enums
+namespace Suhock.X32.Types.Enums;
+
+public enum DynamicsDetection
 {
-    public enum DynamicsDetection
+    Peak,
+    RMS
+}
+
+public static class DynamicsDetectionExtensions
+{
+    private static readonly string[] Mapping =
     {
-        Peak,
-        RMS
+        "PEAK",
+        "RMS"
+    };
+
+    public static string ToNodeString(this EqType type)
+    {
+        return Mapping[(int)type];
     }
 
-    public static class DynamicsDetectionExtensions
+    public static DynamicsDetection FromNodeString(string str)
     {
-        private static readonly string[] mapping =
-        {
-            "PEAK",
-            "RMS"
-        };
+        var index = Array.IndexOf(Mapping, str);
 
-        public static string ToNodeString(this EqType type)
-        {
-            return mapping[(int)type];
-        }
-
-        public static DynamicsDetection FromNodeString(string str)
-        {
-            int index = Array.IndexOf(mapping, str);
-
-            return index >= 0 ? (DynamicsDetection)index : DynamicsDetection.Peak;
-        }
+        return index >= 0 ? (DynamicsDetection)index : DynamicsDetection.Peak;
     }
 }

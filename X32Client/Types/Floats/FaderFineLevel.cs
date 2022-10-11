@@ -1,29 +1,33 @@
-﻿namespace Suhock.X32.Types.Floats
+﻿namespace Suhock.X32.Types.Floats;
+
+public sealed class FaderFineLevel : AbstractLevelDecimal
 {
-    public class FaderFineLevel : LevelFloat
+    private static FaderFineLevel? _minValue;
+
+    private static FaderFineLevel? _maxValue;
+
+    public static FaderFineLevel MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+
+    public static FaderFineLevel MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
+
+    private FaderFineLevel()
     {
-        private static FaderFineLevel _minValue;
+    }
 
-        private static FaderFineLevel _maxValue;
+    public FaderFineLevel(float unitValue) : base(unitValue)
+    {
+    }
 
-        public static FaderFineLevel MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public FaderFineLevel(int stepValue) : base(stepValue)
+    {
+    }
 
-        public static FaderFineLevel MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
+    public static FaderFineLevel FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
 
-        protected FaderFineLevel() { }
+    public override int Steps => 1024;
 
-        public FaderFineLevel(float unitValue) : base(unitValue) { }
-
-        public FaderFineLevel(int stepValue) : base(stepValue) { }
-
-        public static FaderFineLevel FromEncodedValue(float encodedValue) =>
-            new FaderFineLevel() { EncodedValue = encodedValue };
-
-        public override int Steps => 1024;
-
-        public override string ToNodeString()
-        {
-            return ToCompactNodeString(1);
-        }
+    public override string ToNodeString()
+    {
+        return ToCompactNodeString(1);
     }
 }

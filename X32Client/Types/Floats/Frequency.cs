@@ -1,28 +1,31 @@
-﻿namespace Suhock.X32.Types.Floats
+﻿namespace Suhock.X32.Types.Floats;
+
+public abstract class Frequency : AbstractLogDecimal
 {
-    public abstract class Frequency : LogFloat
+    public override string Unit => "Hz";
+
+    public override string ToNodeString()
     {
-        public override string Unit => "Hz";
+        var unitValue = UnitValue;
 
-        public override string ToNodeString()
+        if (unitValue < 1000f)
         {
-            float unitValue = UnitValue;
-
-            if (unitValue < 1000f)
-            {
-                return ToFixedDecimalNodeString(1);
-            }
-            else
-            {
-                return ((int)unitValue / 1000) + "k" + ((int)unitValue % 1000 / 10);
-            }
+            return ToFixedDecimalNodeString(1);
         }
 
+        return ((int)unitValue / 1000) + "k" + ((int)unitValue % 1000 / 10);
+    }
 
-        protected Frequency() { }
 
-        public Frequency(float unitValue) : base(unitValue) { }
+    protected Frequency()
+    {
+    }
 
-        public Frequency(int stepValue) : base(stepValue) { }
+    public Frequency(float unitValue) : base(unitValue)
+    {
+    }
+
+    public Frequency(int stepValue) : base(stepValue)
+    {
     }
 }

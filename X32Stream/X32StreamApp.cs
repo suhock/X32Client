@@ -10,15 +10,15 @@ namespace Suhock.X32.Stream
 
         private static async Task Main(string[] args)
         {
-            string configFilename = args.Length > 0 ? args[0] : DefaultConfigFilename;
+            var configFilename = args.Length > 0 ? args[0] : DefaultConfigFilename;
             X32StreamConfig config;
 
-            using (FileStream fs = File.OpenRead(configFilename))
+            using (var fs = File.OpenRead(configFilename))
             {
                 config = await JsonSerializer.DeserializeAsync<X32StreamConfig>(fs);
             }
 
-            using X32Stream x32Stream = new X32Stream(config);
+            using var x32Stream = new X32Stream(config);
             await x32Stream.Run().ConfigureAwait(true);
         }
     }

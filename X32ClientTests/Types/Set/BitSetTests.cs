@@ -8,7 +8,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void BitSetTest()
         {
-            BitSet set = new BitSet(4);
+            var set = new BitSet(4);
 
             Assert.AreEqual(0, set.Count);
         }
@@ -16,7 +16,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void BitSetTest1()
         {
-            BitSet set = new BitSet(4, 6);
+            var set = new BitSet(4, 6);
 
             Assert.AreEqual(2, set.Count);
             Assert.IsTrue(set.Contains(2));
@@ -26,7 +26,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void BitSetTest2()
         {
-            BitSet set = new BitSet(4, new int[] { 1, 4 });
+            var set = new BitSet(4, new int[] { 1, 4 });
 
             Assert.AreEqual(2, set.Count);
             Assert.IsTrue(set.Contains(1));
@@ -36,7 +36,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void AddTest()
         {
-            BitSet set = new BitSet(4);
+            var set = new BitSet(4);
 
             Assert.IsTrue(set.Add(1));
             Assert.IsFalse(set.Add(1));
@@ -50,7 +50,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void ClearTest()
         {
-            BitSet set = new BitSet(4, 15);
+            var set = new BitSet(4, 15);
 
             set.Clear();
             Assert.AreEqual(0, set.Bits);
@@ -59,7 +59,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void ContainsTest()
         {
-            BitSet set = new BitSet(4, 2);
+            var set = new BitSet(4, 2);
 
             Assert.IsTrue(set.Contains(2));
             Assert.IsFalse(set.Contains(3));
@@ -68,8 +68,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void CopyToTest()
         {
-            BitSet set = new BitSet(4, 6);
-            int[] result = new int[3];
+            var set = new BitSet(4, 6);
+            var result = new int[3];
 
             set.CopyTo(result, 1);
             CollectionAssert.AreEqual(new int[] { 0, 2, 3 }, result);
@@ -78,7 +78,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void ExceptWithTest()
         {
-            BitSet set = new BitSet(4, 15);
+            var set = new BitSet(4, 15);
 
             set.ExceptWith(new BitSet(4, 9));
             Assert.AreEqual(6, set.Bits);
@@ -87,11 +87,11 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void GetEnumeratorTest()
         {
-            BitSet set = new BitSet(4, 6);
-            int[] test = new int[2] { 2, 3 };
-            int index = 0;
+            var set = new BitSet(4, 6);
+            var test = new int[2] { 2, 3 };
+            var index = 0;
 
-            foreach (int x in set)
+            foreach (var x in set)
             {
                 Assert.AreEqual(test[index++], x);
             }
@@ -102,8 +102,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void IntersectWithTest()
         {
-            BitSet set1 = new BitSet(4, 6);
-            BitSet set2 = new BitSet(4, 2);
+            var set1 = new BitSet(4, 6);
+            var set2 = new BitSet(4, 2);
 
             set1.IntersectWith(set2);
             Assert.AreEqual(2, set1.Bits);
@@ -112,8 +112,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void IsProperSubsetOfTest()
         {
-            BitSet set1 = new BitSet(4, 6);
-            BitSet set2 = new BitSet(4, 2);
+            var set1 = new BitSet(4, 6);
+            var set2 = new BitSet(4, 2);
 
             Assert.IsTrue(set2.IsProperSubsetOf(set1));
             Assert.IsFalse(set1.IsProperSubsetOf(set2));
@@ -129,8 +129,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void IsProperSupersetOfTest()
         {
-            BitSet set1 = new BitSet(4, 6);
-            BitSet set2 = new BitSet(4, 2);
+            var set1 = new BitSet(4, 6);
+            var set2 = new BitSet(4, 2);
 
             Assert.IsTrue(set1.IsProperSupersetOf(set2));
             Assert.IsFalse(set2.IsProperSupersetOf(set1));
@@ -146,8 +146,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void IsSubsetOfTest()
         {
-            BitSet set1 = new BitSet(4, 6);
-            BitSet set2 = new BitSet(4, 2);
+            var set1 = new BitSet(4, 6);
+            var set2 = new BitSet(4, 2);
 
             Assert.IsTrue(set2.IsSubsetOf(set1));
             Assert.IsFalse(set1.IsSubsetOf(set2));
@@ -163,8 +163,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void IsSupersetOfTest()
         {
-            BitSet set1 = new BitSet(4, 6);
-            BitSet set2 = new BitSet(4, 2);
+            var set1 = new BitSet(4, 6);
+            var set2 = new BitSet(4, 2);
 
             Assert.IsFalse(set2.IsSupersetOf(set1));
             Assert.IsTrue(set1.IsSupersetOf(set2));
@@ -177,8 +177,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void OverlapsTest()
         {
-            BitSet set1 = new BitSet(4, 6);
-            BitSet set2 = new BitSet(4, 3);
+            var set1 = new BitSet(4, 6);
+            var set2 = new BitSet(4, 3);
 
             Assert.IsTrue(set1.Overlaps(set2));
             Assert.IsTrue(set2.Overlaps(set1));
@@ -191,7 +191,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void RemoveTest()
         {
-            BitSet set = new BitSet(4, 6);
+            var set = new BitSet(4, 6);
 
             Assert.IsTrue(set.Remove(2));
             Assert.IsFalse(set.Remove(2));
@@ -200,8 +200,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void SetEqualsTest()
         {
-            BitSet set1 = new BitSet(4, 6);
-            BitSet set2 = new BitSet(4, 2);
+            var set1 = new BitSet(4, 6);
+            var set2 = new BitSet(4, 2);
 
             Assert.IsFalse(set1.SetEquals(set2));
 
@@ -216,7 +216,7 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void SymmetricExceptWithTest()
         {
-            BitSet set = new BitSet(4, new int[] { 1, 2, 3 });
+            var set = new BitSet(4, new int[] { 1, 2, 3 });
 
             set.SymmetricExceptWith(new BitSet(4, new int[] { 2, 3, 4 }));
             Assert.AreEqual(9, set.Bits);
@@ -225,8 +225,8 @@ namespace Suhock.X32.Types.Sets.Tests
         [TestMethod()]
         public void UnionWithTest()
         {
-            BitSet set1 = new BitSet(4, 4);
-            BitSet set2 = new BitSet(4, 2);
+            var set1 = new BitSet(4, 4);
+            var set2 = new BitSet(4, 2);
 
             set1.UnionWith(set2);
             Assert.AreEqual(6, set1.Bits);

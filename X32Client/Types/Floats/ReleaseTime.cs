@@ -1,33 +1,30 @@
-﻿namespace Suhock.X32.Types.Floats
+﻿namespace Suhock.X32.Types.Floats;
+
+public sealed class ReleaseTime : AbstractLogDecimal
 {
-    public class ReleaseTime : LogFloat
-    {
-        public override float MinUnitValue => 5.0f;
+    private static ReleaseTime? _minValue;
 
-        public override float MaxUnitValue => 4000f;
+    private static ReleaseTime? _maxValue;
 
-        public override int Steps => 101;
+    public static ReleaseTime MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
 
-        public override string Unit => "ms";
+    public static ReleaseTime MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
 
-        public override string ToNodeString() => ToFixedDecimalNodeString(0);
+    private ReleaseTime() { }
 
+    public ReleaseTime(float unitValue) : base(unitValue) { }
 
-        private static ReleaseTime _minValue;
+    public ReleaseTime(int stepValue) : base(stepValue) { }
 
-        private static ReleaseTime _maxValue;
+    public static ReleaseTime FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
 
-        public static ReleaseTime MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public override float MinUnitValue => 5.0f;
 
-        public static ReleaseTime MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
+    public override float MaxUnitValue => 4000f;
 
-        protected ReleaseTime() { }
+    public override int Steps => 101;
 
-        public ReleaseTime(float unitValue) : base(unitValue) { }
+    public override string Unit => "ms";
 
-        public ReleaseTime(int stepValue) : base(stepValue) { }
-
-        public static ReleaseTime FromEncodedValue(float encodedValue) =>
-            new ReleaseTime() { EncodedValue = encodedValue };
-    }
+    public override string ToNodeString() => ToFixedDecimalNodeString(0);
 }

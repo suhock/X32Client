@@ -3,6 +3,7 @@ using Suhock.X32.Types.Enums;
 using Suhock.X32.Types.Floats;
 using Suhock.X32.Util;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Suhock.X32.Show
@@ -10,19 +11,20 @@ namespace Suhock.X32.Show
     public sealed class X32Show : IDisposable
     {
         private readonly X32Client _client;
+        private readonly OscMessageFactory _messageFactory;
 
 
         public X32Show(X32ShowConfig config)
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
             _client = new X32Client(Config.Address, Config.Port);
+            _messageFactory = new OscMessageFactory();
         }
 
         public X32ShowConfig Config { get; }
 
         public void Dispose()
         {
-            _client.Dispose();
         }
 
         public async Task Run()
@@ -45,26 +47,27 @@ namespace Suhock.X32.Show
             };
 
             _client.Run();
-            _ = _client.Subscribe();
+            _ = _client.Subscribe(CancellationToken.None);
 
-            for (int i = 0; i < 16; i++)
+            for (var i = 0; i < 16; i++)
             {
-                Send(_client.MessageFactory.Create("/bus/" + (i + 1).ToString().PadLeft(2, '0') + "/mix/on", 0));
+                await SendAsync("/bus/" + (i + 1).ToString().PadLeft(2, '0') + "/mix/on", 0).ConfigureAwait(false);
             }
 
-            for (int i = 0; i < 32; i += 2)
+            for (var i = 0; i < 32; i += 2)
             {
-                Send(_client.MessageFactory.Create("/config/chlink/" + (i + 1).ToString() + "-" + (i + 2).ToString(), 0));
+                await SendAsync($"/config/chlink/{(i + 1)}-{(i + 2)}", 0).ConfigureAwait(false);
             }
 
-            Send(_client.MessageFactory.Create("/main/st/mix/on", 0));
-            Send(_client.MessageFactory.Create("/dca/1/fader"));
-            Send(_client.MessageFactory.Create("/dca/2/fader"));
+            await _client.Root.Main.Stereo.Mix.On(false).ConfigureAwait(false);
+            await _client.Root.Dca(1).Fader(FaderFineLevel.MinValue).ConfigureAwait(false);
+            await _client.Root.Dca(2).Fader(FaderFineLevel.MinValue).ConfigureAwait(false);
 
-            int interval = 50;
-            float meter = 0.0f;
-            int colorOffset = 0;
-            StripColor[] colors = new StripColor[] {
+            var interval = 50;
+            var meter = 0.0f;
+            var colorOffset = 0;
+            var colors = new[]
+            {
                 StripColor.Red,
                 StripColor.Yellow,
                 StripColor.Green,
@@ -74,7 +77,7 @@ namespace Suhock.X32.Show
                 StripColor.White
             };
 
-            float[] levels = new float[16];
+            var levels = new float[16];
 
             while (true)
             {
@@ -84,26 +87,29 @@ namespace Suhock.X32.Show
 
                     colorOffset++;
 
-                    float width = (float)((Math.Cos(meter * Math.PI) + 1) / 2);
-                    int minMute = (int)(8.5 * (1 - width));
-                    int maxMute = 15 - minMute;
+                    var width = (float)((Math.Cos(meter * Math.PI) + 1) / 2);
+                    var minMute = (int)(8.5 * (1 - width));
+                    var maxMute = 15 - minMute;
 
-                    for (int i = 15; i >= 1; i--)
+                    for (var i = 15; i >= 1; i--)
                     {
                         levels[i] = levels[i - 1];
                     }
 
                     levels[0] = (float)(ampFader.GetArgumentValue<float>(0) * Math.Sin(meter * 2 * Math.PI) + 1) / 2;
 
-                    for (int i = 0; i < 32; i++)
+                    for (var i = 0; i < 32; i++)
                     {
-                        _client.Root.Channel(i + 1).Mix.SetFader(FaderFineLevel.FromEncodedValue(levels[i % 16]));
+                        await _client.Root.Channel(i + 1).Mix.Fader(FaderFineLevel.FromEncodedValue(levels[i % 16]))
+                            .ConfigureAwait(false);
                     }
 
-                    for (int i = 0; i < 32; i++)
+                    for (var i = 0; i < 32; i++)
                     {
-                        _client.Root.Channel(i + 1).Mix.SetOn((i % 16) >= minMute && (i % 16) <= maxMute);
-                        _client.Root.Channel(i + 1).Config.SetColor(colors[(colorOffset * interval / 1000 + i) % colors.Length]);
+                        await _client.Root.Channel(i + 1).Mix.On((i % 16) >= minMute && (i % 16) <= maxMute)
+                            .ConfigureAwait(false);
+                        await _client.Root.Channel(i + 1).Config
+                            .Color(colors[(colorOffset * interval / 1000 + i) % colors.Length]).ConfigureAwait(false);
                     }
                 }
 
@@ -111,10 +117,10 @@ namespace Suhock.X32.Show
             }
         }
 
-        private void Send(OscMessage msg)
+        private async Task SendAsync(string address, params object[] values)
         {
             //X32ConsoleLogger.WriteSend(_client, msg);
-            _client.Send(msg);
+            await _client.SendAsync(_messageFactory.Create(address, values)).ConfigureAwait(false);
         }
     }
 }

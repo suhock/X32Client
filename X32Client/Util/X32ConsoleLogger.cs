@@ -2,131 +2,128 @@
 using System;
 using System.Collections.Generic;
 
-namespace Suhock.X32.Util
+namespace Suhock.X32.Util;
+
+public static class X32ConsoleLogger
 {
-    public static class X32ConsoleLogger
+    private static readonly object _lock = new();
+
+    public static void Write(params object[] parts)
     {
-        private static readonly object _lock = new object();
+        WriteParts(parts, false);
+    }
 
-        public static void Write(params object[] parts)
-        {
-            WriteParts(parts, false);
-        }
+    public static void WriteLine(params object[] parts)
+    {
+        WriteParts(parts, true);
+    }
 
-        public static void WriteLine(params object[] parts)
+    private static void WriteParts(object[] parts, bool newLine)
+    {
+        lock (_lock)
         {
-            WriteParts(parts, true);
-        }
+            var originalColor = Console.ForegroundColor;
+            var startIndex = 0;
+            var currentIndex = 0;
 
-        private static void WriteParts(object[] parts, bool newLine)
-        {
-            lock (_lock)
+            void EmptyQueue()
             {
-                ConsoleColor originalColor = Console.ForegroundColor;
-                int startIndex = 0;
-                int currentIndex = 0;
-
-                void emptyQueue()
+                if (currentIndex > startIndex)
                 {
-                    if (currentIndex > startIndex)
-                    {
-                        object[] args = new object[currentIndex - startIndex - 1];
-                        Array.Copy(parts, startIndex + 1, args, 0, currentIndex - startIndex - 1);
-                        Console.Write((string)parts[startIndex], args);
-                    }
+                    var args = new object[currentIndex - startIndex - 1];
+                    Array.Copy(parts, startIndex + 1, args, 0, currentIndex - startIndex - 1);
+                    Console.Write((string)parts[startIndex], args);
+                }
 
+                startIndex = currentIndex + 1;
+            }
+
+            for (currentIndex = 0; currentIndex < parts.Length; currentIndex++)
+            {
+                if (parts[currentIndex].GetType() == typeof(ConsoleColor))
+                {
+                    EmptyQueue();
+                    Console.ForegroundColor = (ConsoleColor)parts[currentIndex];
+                }
+                else if (currentIndex == startIndex && parts[currentIndex].GetType() != typeof(string))
+                {
+                    Console.Write(parts[startIndex]);
                     startIndex = currentIndex + 1;
                 }
-
-                for (currentIndex = 0; currentIndex < parts.Length; currentIndex++)
-                {
-                    if (parts[currentIndex].GetType() == typeof(ConsoleColor))
-                    {
-                        emptyQueue();
-                        Console.ForegroundColor = (ConsoleColor)parts[currentIndex];
-                    }
-                    else if (currentIndex == startIndex && parts[currentIndex].GetType() != typeof(string))
-                    {
-                        Console.Write(parts[startIndex]);
-                        startIndex = currentIndex + 1;
-                    }
-                }
-
-                emptyQueue();
-
-                if (newLine)
-                {
-                    Console.WriteLine();
-                }
-
-                Console.ForegroundColor = originalColor;
             }
+
+            EmptyQueue();
+
+            if (newLine)
+            {
+                Console.WriteLine();
+            }
+
+            Console.ForegroundColor = originalColor;
+        }
+    }
+
+    public static void WriteSend(IX32Client client, OscMessage msg)
+    {
+        if (client == null)
+        {
+            throw new ArgumentNullException(nameof(client));
         }
 
-        public static void WriteSend(X32Client client, OscMessage msg)
+        if (msg == null)
         {
-            if (client == null)
-            {
-                throw new ArgumentNullException(nameof(client));
-            }
-
-            if (msg == null)
-            {
-                throw new ArgumentNullException(nameof(msg));
-            }
-
-            List<object> parts = new List<object>
-            {
-                ConsoleColor.DarkGray,
-                "Send ",
-                ConsoleColor.Gray,
-                client.Address,
-                ConsoleColor.DarkGray,
-                ": "
-            };
-
-            WriteMessage(parts, msg, ConsoleColor.Red);
-            WriteParts(parts.ToArray(), true);
+            throw new ArgumentNullException(nameof(msg));
         }
 
-        public static void WriteReceive(X32Client client, OscMessage msg)
+        var parts = new List<object>
         {
-            if (client == null)
-            {
-                throw new ArgumentNullException(nameof(client));
-            }
+            ConsoleColor.DarkGray,
+            "Send",
+            //ConsoleColor.Gray,
+            //client.Address,
+            ConsoleColor.DarkGray,
+            ": "
+        };
 
-            if (msg == null)
-            {
-                throw new ArgumentNullException(nameof(msg));
-            }
+        WriteMessage(parts, msg, ConsoleColor.Red);
+        WriteParts(parts.ToArray(), true);
+    }
 
-            List<object> parts = new List<object>
-                {
-                    ConsoleColor.DarkGray,
-                    "Recv ",
-                    ConsoleColor.Gray,
-                    client.Address,
-                    ConsoleColor.DarkGray,
-                    ": "
-                };
-
-            WriteMessage(parts, msg, ConsoleColor.White);
-            WriteParts(parts.ToArray(), true);
+    public static void WriteReceive(X32Client client, OscMessage msg)
+    {
+        if (client == null)
+        {
+            throw new ArgumentNullException(nameof(client));
         }
 
-        private static void WriteMessage(List<object> parts, OscMessage msg, ConsoleColor addressColor)
+        if (msg == null)
         {
-            parts.Add(addressColor);
-            parts.Add(msg.Address);
-            parts.Add(ConsoleColor.DarkGray);
-            parts.Add(' ' + msg.GetTypeTagString());
-            parts.Add(ConsoleColor.White);
+            throw new ArgumentNullException(nameof(msg));
+        }
 
-            foreach (var arg in msg.Arguments)
-            {
-                parts.Add(' ' + arg.ToString());
-            }
+        var parts = new List<object>
+        {
+            ConsoleColor.DarkGray,
+            "Recv ",
+            ConsoleColor.DarkGray,
+            ": "
+        };
+
+        WriteMessage(parts, msg, ConsoleColor.White);
+        WriteParts(parts.ToArray(), true);
+    }
+
+    private static void WriteMessage(List<object> parts, OscMessage msg, ConsoleColor addressColor)
+    {
+        parts.Add(addressColor);
+        parts.Add(msg.Address);
+        parts.Add(ConsoleColor.DarkGray);
+        parts.Add(' ' + msg.GetTypeTagString());
+        parts.Add(ConsoleColor.White);
+
+        foreach (var arg in msg.Arguments)
+        {
+            parts.Add(' ' + arg.ToString());
         }
     }
 }

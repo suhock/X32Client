@@ -1,34 +1,37 @@
-﻿namespace Suhock.X32.Types.Floats
+﻿namespace Suhock.X32.Types.Floats;
+
+public sealed class HpfFrequency : Frequency
 {
-    public class HpfFrequency : Frequency
+    private static HpfFrequency? _minValue;
+
+    private static HpfFrequency? _maxValue;
+
+    public static HpfFrequency MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+
+    public static HpfFrequency MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
+
+    private HpfFrequency()
     {
-        public override float MinUnitValue => 20f;
+    }
 
-        public override float MaxUnitValue => 400f;
+    public HpfFrequency(float unitValue) : base(unitValue)
+    {
+    }
 
-        public override int Steps => 101;
+    public HpfFrequency(int stepValue) : base(stepValue)
+    {
+    }
 
-        public override string ToNodeString()
-        {
-            return ToFixedDecimalNodeString(0);
-        }
+    public static HpfFrequency FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
 
+    public override float MinUnitValue => 20f;
 
-        private static HpfFrequency _minValue;
+    public override float MaxUnitValue => 400f;
 
-        private static HpfFrequency _maxValue;
+    public override int Steps => 101;
 
-        public static HpfFrequency MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
-
-        public static HpfFrequency MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-        protected HpfFrequency() { }
-
-        public HpfFrequency(float unitValue) : base(unitValue) { }
-
-        public HpfFrequency(int stepValue) : base(stepValue) { }
-
-        public static HpfFrequency FromEncodedValue(float encodedValue) =>
-            new HpfFrequency() { EncodedValue = encodedValue };
+    public override string ToNodeString()
+    {
+        return ToFixedDecimalNodeString(0);
     }
 }

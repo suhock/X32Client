@@ -1,39 +1,38 @@
 ﻿using System;
 
-namespace Suhock.X32.Types.Enums
+namespace Suhock.X32.Types.Enums;
+
+public enum EqType
 {
-    public enum EqType
+    LowCut,
+    LowShelf,
+    ParametricEq,
+    VintageEq,
+    HighShelf,
+    HighCut
+}
+
+public static class EqTypeExtensions
+{
+    private static readonly string[] Mapping =
     {
-        LowCut,
-        LowShelf,
-        ParametricEq,
-        VintageEq,
-        HighShelf,
-        HighCut
+        "LCut",
+        "LShv",
+        "PEQ",
+        "VEQ",
+        "HShv",
+        "HCut"
+    };
+
+    public static string ToNodeString(this EqType type)
+    {
+        return Mapping[(int)type];
     }
 
-    public static class EqTypeExtensions
+    public static EqType FromNodeString(string str)
     {
-        private static readonly string[] mapping =
-        {
-            "LCut",
-            "LShv",
-            "PEQ",
-            "VEQ",
-            "HShv",
-            "HCut"
-        };
+        var index = Array.IndexOf(Mapping, str);
 
-        public static string ToNodeString(this EqType type)
-        {
-            return mapping[(int)type];
-        }
-
-        public static EqType FromNodeString(string str)
-        {
-            int index = Array.IndexOf(mapping, str);
-
-            return index >= 0 ? (EqType)index : EqType.ParametricEq;
-        }
+        return index >= 0 ? (EqType)index : EqType.ParametricEq;
     }
 }

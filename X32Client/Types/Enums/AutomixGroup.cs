@@ -1,33 +1,32 @@
 ﻿using System;
 
-namespace Suhock.X32.Types.Enums
+namespace Suhock.X32.Types.Enums;
+
+public enum AutomixGroup
 {
-    public enum AutomixGroup
+    Off,
+    X,
+    Y
+}
+
+public static class AutomixGroupExtensions
+{
+    private static readonly string[] Mapping =
     {
-        Off,
-        X,
-        Y
+        "OFF",
+        "X",
+        "Y"
+    };
+
+    public static string ToNodeString(this FilterType filterType)
+    {
+        return Mapping[(int)filterType];
     }
 
-    public static class AutomixGroupExtensions
+    public static AutomixGroup FromNodeString(string str)
     {
-        private static readonly string[] mapping =
-        {
-            "OFF",
-            "X",
-            "Y"
-        };
+        var index = Array.IndexOf(Mapping, str);
 
-        public static string ToNodeString(this FilterType filterType)
-        {
-            return mapping[(int)filterType];
-        }
-
-        public static AutomixGroup FromNodeString(string str)
-        {
-            int index = Array.IndexOf(mapping, str);
-
-            return index >= 0 ? (AutomixGroup)index : AutomixGroup.Off;
-        }
+        return index >= 0 ? (AutomixGroup)index : AutomixGroup.Off;
     }
 }

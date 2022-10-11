@@ -1,48 +1,70 @@
 ﻿{
 	"Address": "192.168.1.238",
 	"Port": 10023,
-	"CredentialsFilename": "credentials.json",
-	"SpreadsheetId": "1v0DlxL7jHtpwv3g6rHp3eVplNaFb57VjTOAjEzloxfs",
-	"SpreadsheetRange": "Channels!A1:G",
 	"ConsoleName": "M32",
-	"Groups": [
+	"GoogleSheet": {
+		"CredentialsFilename": "credentials.json",
+		"SpreadsheetId": "1v0DlxL7jHtpwv3g6rHp3eVplNaFb57VjTOAjEzloxfs",
+		"SpreadsheetRange": "Channels!A1:G"
+	},
+	"Templates": [
 		{
 			"Name": "Vox",
-			"Type": "Bus",
-			"Id": "01",
-			"Color": 2,
-			"MuteGroups": [ 1 ]
+			"Color": "Green",
+			"MuteGroups": [ 1 ],
+			"DcaGroups": [ 1 ],
+			"StereoSendOn": false,
+			"Sends": [
+				{
+					"Id": 1,
+					"TapType": "Group",
+					"On": true
+				},
+				{
+					"Id": 3,
+					"On": false
+				}
+			]
 		},
 		{
 			"Name": "Inst",
-			"Type": "DCA",
-			"Id": "02",
-			"Color": 1,
-			"MuteGroups": [ 1 ]
+			"Color": "Red",
+			"MuteGroups": [ 1 ],
+			"DcaGroups": [ 2 ]
 		},
 		{
 			"Name": "Keys",
-			"Type": "DCA",
-			"Id": "02",
-			"Color": 6
+			"Color": 6,
+			"DcaGroups": [ 2 ]
 		},
 		{
 			"Name": "Drums",
-			"Type": "Bus",
-			"Id": "03",
 			"Color": 4,
-			"MuteGroups": [ 1 ]
+			"MuteGroups": [ 1 ],
+			"DcaGroups": [ 3 ],
+			"StereoSendOn": false
 		},
 		{
 			"Name": "Other",
-			"Type": "DCA",
-			"Id": "04",
-			"Color": 3
+			"Color": "Yellow",
+			"DcaGroups": [ 4 ]
 		},
 		{
 			"Name": "",
-			"Type": "Off",
-			"Color": 7
+			"Color": "Black",
+			"On": false,
+			"StereoSendOn": false,
+			"Sends": [
+				{
+					"Id": 1,
+					"TapType": "Group",
+					"On": true
+				},
+				{
+					"Id": 3,
+					"On": false
+				}
+			]
 		}
 	]
 }

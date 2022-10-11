@@ -1,34 +1,35 @@
 ﻿using System;
 
-namespace Suhock.Osc.Arguments
+namespace Suhock.Osc.Arguments;
+
+public sealed class OscFloatArgument : OscArgument<float>
 {
-    public class OscFloatArgument : OscArgument<float>
+    public const byte TypeTagByte = (byte)'f';
+
+    public OscFloatArgument() : this(0.0f) { }
+
+    public OscFloatArgument(float value) : base(value)
     {
-        public const byte TypeTagChar = (byte)'f';
+        Value = value;
+    }
 
-        public OscFloatArgument() : this(0.0f) { }
+    public override byte TypeTag => TypeTagByte;
 
-        public OscFloatArgument(float value) : base(TypeTagChar, value)
-        {
-            Value = value;
-        }
+    public override int GetByteCount()
+    {
+        return 4;
+    }
 
-        public override int GetByteCount()
-        {
-            return 4;
-        }
+    public override byte[] GetBytes()
+    {
+        var bytes = new byte[4];
+        WriteBytes(bytes);
 
-        public override byte[] GetBytes()
-        {
-            byte[] bytes = new byte[4];
-            WriteBytes(bytes);
+        return bytes;
+    }
 
-            return bytes;
-        }
-
-        public override int WriteBytes(Span<byte> bytes)
-        {
-            return OscUtil.WriteFloat(bytes, Value);
-        }
+    public override int WriteBytes(Span<byte> target)
+    {
+        return OscUtil.WriteFloat(target, Value);
     }
 }

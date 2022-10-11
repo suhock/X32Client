@@ -1,36 +1,39 @@
-﻿namespace Suhock.X32.Types.Floats
+﻿namespace Suhock.X32.Types.Floats;
+
+public sealed class QFactor : AbstractLogDecimal
 {
-    public class QFactor : LogFloat
+    private static QFactor? _minValue;
+
+    private static QFactor? _maxValue;
+
+    public static QFactor MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+
+    public static QFactor MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
+
+    private QFactor()
     {
-        public override float MinUnitValue => 10;
+    }
 
-        public override float MaxUnitValue => 0.3f;
+    public QFactor(float unitValue) : base(unitValue)
+    {
+    }
 
-        public override int Steps => 72;
+    public QFactor(int stepValue) : base(stepValue)
+    {
+    }
 
-        public override string Unit => "";
-        
-        public override string ToNodeString()
-        {
-            return ToFixedDecimalNodeString(1);
-        }
+    public static QFactor FromEncodedValue(float encodedValue) => new() { EncodedValue = encodedValue };
 
+    public override float MinUnitValue => 10;
 
-        private static QFactor _minValue;
+    public override float MaxUnitValue => 0.3f;
 
-        private static QFactor _maxValue;
+    public override int Steps => 72;
 
-        public static QFactor MinValue => _minValue ??= FromEncodedValue(MinEncodedValue);
+    public override string Unit => "";
 
-        public static QFactor MaxValue => _maxValue ??= FromEncodedValue(MaxEncodedValue);
-
-        protected QFactor() { }
-
-        public QFactor(float unitValue) : base(unitValue) { }
-
-        public QFactor(int stepValue) : base(stepValue) { }
-
-        public static QFactor FromEncodedValue(float encodedValue) =>
-            new QFactor() { EncodedValue = encodedValue };
+    public override string ToNodeString()
+    {
+        return ToFixedDecimalNodeString(1);
     }
 }

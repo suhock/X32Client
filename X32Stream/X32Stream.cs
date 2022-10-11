@@ -1,37 +1,35 @@
-﻿using Suhock.Osc;
-using Suhock.X32.Util;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Suhock.Osc;
 
 namespace Suhock.X32.Stream
 {
-    public class X32Stream : IDisposable
+    public sealed class X32Stream : IDisposable
     {
-        private readonly X32StreamConfig Config;
+        private readonly X32StreamConfig _config;
 
-        private readonly X32Client ClientDst;
+        private readonly IX32Client _clientDst;
 
-        private readonly X32Client ClientSrc;
+        private readonly IX32Client _clientSrc;
+
+        private readonly IOscMessageFactory _messageFactory;
 
         public X32Stream(X32StreamConfig config)
         {
-            Config = config ?? throw new ArgumentNullException(nameof(config));
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _messageFactory = new OscMessageFactory();
+            _clientDst = new X32Client(config.Destination.Address, config.Destination.Port);
+            _clientSrc = new X32Client(config.Source.Address, config.Source.Port);
 
-            ClientDst = new X32Client(config.Destination.Address, config.Destination.Port);
-            ClientSrc = new X32Client(config.Source.Address, config.Source.Port);
-
-            ClientSrc.MessageReceived += (client, msg) =>
+            _clientSrc.MessageReceived += (_, msg) =>
             {
-                foreach (string pattern in config.Patterns)
+                if (config.Patterns.Any(pattern => Regex.IsMatch(msg.Address, pattern)))
                 {
-                    if (Regex.IsMatch(msg.Address, pattern))
-                    {
-                        Send(ClientDst, msg);
-                        break;
-                    }
+                    Send(_clientDst, msg.Address, msg.Arguments);
                 }
             };
         }
@@ -47,29 +45,29 @@ namespace Suhock.X32.Stream
             GC.SuppressFinalize(this);
         }
 
-        private bool IsDisposed = false;
+        private bool _isDisposed;
 
-        protected virtual void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
-            if (IsDisposed)
+            if (_isDisposed)
             {
                 return;
             }
 
             if (disposing)
             {
-                ClientSrc.Dispose();
-                ClientDst.Dispose();
+                //_clientSrc.Dispose();
+                //_clientDst.Dispose();
             }
 
-            IsDisposed = true;
+            _isDisposed = true;
         }
 
         public Task Run()
         {
-            ClientSrc.Run();
-            ClientDst.Run();
-            Task subscribeLoop = ClientSrc.Subscribe();
+            _clientSrc.Run();
+            _clientDst.Run();
+            var subscribeLoop = _clientSrc.Subscribe();
             RunInit();
 
             return subscribeLoop;
@@ -77,147 +75,149 @@ namespace Suhock.X32.Stream
 
         private void RunInit()
         {
-            foreach (string initString in Config.Init)
+            foreach (var initString in _config.Init)
             {
-                bool inList = false;
-                bool inSeq = false;
-                StringBuilder token = null;
-                List<StringBuilder> commands = new List<StringBuilder>();
-                List<string> tokens = null;
-                string seqLow = null;
-                string seqHigh = null;
-
-                foreach (char c in initString)
-                {
-                    bool used = false;
-
-                    switch (c)
-                    {
-                        case '{':
-                            inList = true;
-                            token = new StringBuilder();
-                            tokens = new List<string>();
-                            used = true;
-                            break;
-
-                        case ',':
-                            if (inList)
-                            {
-                                tokens.Add(token.ToString());
-                                token = new StringBuilder();
-                                used = true;
-                            }
-
-                            break;
-
-                        case '}':
-                            if (inList)
-                            {
-                                tokens.Add(token.ToString());
-                                List<StringBuilder> newList = new List<StringBuilder>(commands.Count * tokens.Count);
-
-                                foreach (StringBuilder command in commands)
-                                {
-                                    foreach (string t in tokens)
-                                    {
-                                        newList.Add(new StringBuilder(command.ToString()).Append(t));
-                                    }
-                                }
-
-                                commands = newList;
-                                inList = false;
-                                token = null;
-                                used = true;
-                            }
-
-                            break;
-
-                        case '[':
-                            inSeq = true;
-                            token = new StringBuilder();
-                            used = true;
-                            break;
-
-                        case ']':
-                            if (inSeq)
-                            {
-                                seqHigh = token.ToString();
-                                inSeq = false;
-                                token = null;
-                                used = true;
-
-                                int paddedLength = seqLow.Length;
-                                int low = int.Parse(seqLow);
-                                int high = int.Parse(seqHigh);
-
-                                List<StringBuilder> newList = new List<StringBuilder>(commands.Count * (high - low + 1));
-
-                                for (int i = low; i <= high; i++)
-                                {
-                                    string value = i.ToString();
-
-                                    if (seqLow.Length > value.Length)
-                                    {
-                                        value = value.PadLeft(seqLow.Length, '0');
-                                    }
-
-                                    foreach (StringBuilder command in commands)
-                                    {
-                                        newList.Add(new StringBuilder(command.ToString()).Append(value));
-                                    }
-                                }
-
-                                commands = newList;
-                                seqLow = null;
-                                seqHigh = null;
-                            }
-
-                            break;
-
-                        case '-':
-                            if (inSeq)
-                            {
-                                seqLow = token.ToString();
-                                token = new StringBuilder();
-                                used = true;
-                                break;
-                            }
-
-                            break;
-                    }
-
-                    if (!used)
-                    {
-                        if (token != null)
-                        {
-                            token.Append(c);
-                        }
-                        else
-                        {
-                            if (commands.Count == 0)
-                            {
-                                commands.Add(new StringBuilder());
-                            }
-
-                            foreach (StringBuilder command in commands)
-                            {
-                                command.Append(c);
-                            }
-                        }
-                    }
-                }
-
-                foreach (StringBuilder command in commands)
-                {
-                    Send(ClientSrc, ClientSrc.MessageFactory.Create(command.ToString()));
-                }
+                ParseInitString(initString);
             }
         }
 
-        private static async void Send(X32Client client, OscMessage msg)
+        private void ParseInitString(string initString)
         {
-            X32ConsoleLogger.WriteSend(client, msg);
-            await client.SendAsync(msg).ConfigureAwait(false);
+            var inList = false;
+            var inSeq = false;
+            StringBuilder token = null;
+            var commands = new List<StringBuilder>();
+            List<string> tokens = null;
+            string seqLow = null;
+
+            foreach (var c in initString)
+            {
+                var used = false;
+
+                switch (c)
+                {
+                    case '{':
+                        inList = true;
+                        token = new StringBuilder();
+                        tokens = new List<string>();
+                        used = true;
+                        break;
+
+                    case ',':
+                        if (inList)
+                        {
+                            tokens.Add(token.ToString());
+                            token = new StringBuilder();
+                            used = true;
+                        }
+
+                        break;
+
+                    case '}':
+                        if (inList)
+                        {
+                            tokens.Add(token.ToString());
+                            var newList = new List<StringBuilder>(commands.Count * tokens.Count);
+
+                            foreach (var command in commands)
+                            {
+                                foreach (var t in tokens)
+                                {
+                                    newList.Add(new StringBuilder(command.ToString()).Append(t));
+                                }
+                            }
+
+                            commands = newList;
+                            inList = false;
+                            token = null;
+                            used = true;
+                        }
+
+                        break;
+
+                    case '[':
+                        inSeq = true;
+                        token = new StringBuilder();
+                        used = true;
+                        break;
+
+                    case ']':
+                        if (inSeq)
+                        {
+                            var seqHigh = token.ToString();
+                            inSeq = false;
+                            token = null;
+                            used = true;
+
+                            var low = int.Parse(seqLow);
+                            var high = int.Parse(seqHigh);
+
+                            var newList = new List<StringBuilder>(commands.Count * (high - low + 1));
+
+                            for (var i = low; i <= high; i++)
+                            {
+                                var value = i.ToString();
+
+                                if (seqLow.Length > value.Length)
+                                {
+                                    value = value.PadLeft(seqLow.Length, '0');
+                                }
+
+                                newList.AddRange(
+                                    commands.Select(command =>
+                                            new StringBuilder(command.ToString()).Append(value)));
+                            }
+
+                            commands = newList;
+                            seqLow = null;
+                        }
+
+                        break;
+
+                    case '-':
+                        if (inSeq)
+                        {
+                            seqLow = token.ToString();
+                            token = new StringBuilder();
+                            used = true;
+                        }
+
+                        break;
+                }
+
+                if (used)
+                {
+                    continue;
+                }
+                
+                if (token != null)
+                {
+                    token.Append(c);
+                }
+                else
+                {
+                    if (commands.Count == 0)
+                    {
+                        commands.Add(new StringBuilder());
+                    }
+
+                    foreach (var command in commands)
+                    {
+                        command.Append(c);
+                    }
+                }
+            }
+
+            foreach (var command in commands)
+            {
+                Send(_clientSrc, command.ToString());
+            }
+        }
+
+        private async void Send(IX32Client client, string address, params object[] values)
+        {
+            //X32ConsoleLogger.WriteSend(client, msg);
+            await client.SendAsync(_messageFactory.Create(address, values)).ConfigureAwait(false);
         }
     }
 }

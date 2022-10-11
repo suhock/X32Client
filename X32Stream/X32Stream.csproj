@@ -2,11 +2,11 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <RootNamespace>Suhock.X32.Stream</RootNamespace>
     <AssemblyName>X32Stream</AssemblyName>
-    <PackageIcon>synchronize--v1.png</PackageIcon>
     <ApplicationIcon>sync.ico</ApplicationIcon>
+    <LangVersion>11</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,9 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
 
     <IsPackable>false</IsPackable>
+
+    <TargetFramework>net7.0</TargetFramework>
+
+    <LangVersion>11</LangVersion>
+
+    <Nullable>enable</Nullable>
+
+    <RootNamespace>Suhock.Osc.Tests</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
